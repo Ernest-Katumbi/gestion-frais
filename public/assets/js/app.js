@@ -365,7 +365,10 @@
     var apercu = form.querySelector('[data-apercu]');
     var aide = form.querySelector('[data-montant-aide]');
 
-    function choisi() { return form.querySelector('input[name="id_frais"]:checked'); }
+    // Guichet : frais choisi parmi plusieurs ; paiement en ligne : frais unique.
+    function choisi() {
+      return form.querySelector('input[name="id_frais"]:checked') || form.querySelector('[data-frais-unique]');
+    }
 
     function mettreAJourApercu() {
       var radio = choisi();
@@ -404,6 +407,54 @@
     });
     champ.addEventListener('input', mettreAJourApercu);
     appliquerFrais(choisi(), true);
+  });
+
+  // --- Paiement en ligne : champs propres au moyen de paiement choisi -----------
+  document.querySelectorAll('form').forEach(function (form) {
+    var blocs = form.querySelectorAll('[data-si-mode]');
+    if (!blocs.length) return;
+    function appliquer() {
+      var mode = form.querySelector('input[name="mode"]:checked');
+      blocs.forEach(function (bloc) {
+        var visible = mode && bloc.dataset.siMode === mode.value;
+        bloc.hidden = !visible;
+        // Les champs masqués ne sont ni obligatoires ni envoyés.
+        bloc.querySelectorAll('input, select').forEach(function (champ) {
+          champ.disabled = !visible;
+        });
+      });
+    }
+    form.querySelectorAll('input[name="mode"]').forEach(function (r) { r.addEventListener('change', appliquer); });
+    appliquer();
+  });
+
+  // --- Suivi d'un paiement en ligne : interrogation du statut toutes les 3 s ---
+  document.querySelectorAll('[data-suivi-url]').forEach(function (bloc) {
+    var info = bloc.querySelector('[data-suivi-info]');
+    var essais = 0;
+    var MAX = 200; // environ 10 minutes
+    function interroger() {
+      essais++;
+      fetch(bloc.dataset.suiviUrl, { headers: { 'Accept': 'application/json' }, credentials: 'same-origin', cache: 'no-store' })
+        .then(function (r) { return r.ok ? r.json() : Promise.reject(r.status); })
+        .then(function (d) {
+          if (d.statut !== 'en_attente') {
+            if (info) info.textContent = 'Réponse reçue : ' + d.libelle.toLowerCase() + '…';
+            window.location.reload();
+            return;
+          }
+          if (essais < MAX) {
+            setTimeout(interroger, 3000);
+          } else if (info) {
+            info.textContent = 'Toujours en attente. Actualisez la page plus tard pour voir le résultat.';
+          }
+        })
+        .catch(function () {
+          if (info) info.textContent = 'Connexion interrompue, nouvelle tentative…';
+          setTimeout(interroger, 5000);
+        });
+    }
+    setTimeout(interroger, 3000);
   });
 
   // --- Case « tout cocher » -------------------------------------------------------

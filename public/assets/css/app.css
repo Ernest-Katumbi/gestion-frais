@@ -87,6 +87,7 @@ code, kbd { font-family: ui-monospace, "Cascadia Mono", Consolas, monospace; fon
 .justify-between { justify-content: space-between; }
 .gap-1 { gap: .5rem; } .gap-2 { gap: 1rem; }
 .hidden { display: none !important; }
+[hidden] { display: none !important; }
 
 /* --- Structure des espaces authentifiés -------------------------------------- */
 .app-shell { display: flex; min-height: 100vh; }
@@ -714,6 +715,37 @@ a.cell-user:hover, a.list__main:hover { text-decoration: none; }
 .verif-result.is-invalid .verif-result__icon { background: var(--danger-soft); color: var(--danger); }
 .verif-details { padding: 1.25rem 1.5rem 1.5rem; }
 
+/* --- Paiement en ligne ------------------------------------------------------------ */
+.paiement-form { max-width: 640px; }
+.paiement-form__resume h2 { margin-top: .15rem; }
+.modes { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .75rem; }
+.mode-card { display: flex; align-items: center; gap: .8rem; padding: .95rem 1rem; border: 1.5px solid var(--border); border-radius: var(--radius); cursor: pointer; transition: border-color .15s, background .15s, box-shadow .15s; }
+.mode-card:hover { border-color: #B8C9A8; }
+.mode-card:has(input:checked) { border-color: var(--primary); background: #FAFCF8; box-shadow: 0 0 0 3px var(--primary-ring); }
+.mode-card input { width: 18px; height: 18px; margin: 0; accent-color: var(--primary); }
+.mode-card__icon { display: inline-flex; align-items: center; justify-content: center; width: 40px; height: 40px; flex-shrink: 0; border-radius: 12px; background: var(--primary-soft); color: var(--primary); }
+
+.suivi { max-width: 560px; margin: 0 auto; }
+.suivi__etat { padding: 2rem 1.5rem 1.5rem; border-bottom: 1px solid var(--border); text-align: center; }
+.suivi__etat h2 { margin: .9rem 0 .4rem; font-size: 1.3rem; }
+.suivi__etat p { max-width: 420px; margin: 0 auto 1.2rem; color: var(--text-muted); }
+.suivi__etat.is-reussi { background: linear-gradient(180deg, #F0FDF4, #fff); border-radius: var(--radius-lg) var(--radius-lg) 0 0; }
+.suivi__etat.is-echoue { background: linear-gradient(180deg, #FEF2F2, #fff); border-radius: var(--radius-lg) var(--radius-lg) 0 0; }
+.suivi__icone { display: inline-flex; align-items: center; justify-content: center; width: 64px; height: 64px; border-radius: 50%; }
+.suivi__icone .icon { width: 34px; height: 34px; }
+.is-reussi .suivi__icone { background: var(--success-soft); color: var(--success); }
+.is-echoue .suivi__icone { background: var(--danger-soft); color: var(--danger); }
+.suivi__spinner { display: inline-block; width: 56px; height: 56px; border: 5px solid var(--info-soft); border-top-color: var(--info); border-radius: 50%; animation: spin 1s linear infinite; }
+.suivi__actions { display: flex; flex-wrap: wrap; justify-content: center; gap: .6rem; }
+.suivi__details { padding: 1.25rem 1.5rem 1.5rem; }
+
+.notif-menu__pied { display: flex; flex-wrap: wrap; justify-content: space-between; gap: .25rem; padding: .4rem; border-top: 1px solid var(--border); }
+.notif-menu__pied form { margin: 0; }
+.notif-item__icon.is-echec { background: var(--danger-soft); color: var(--danger-text); }
+.notif-page .notif-item { align-items: flex-start; }
+.notif-page .notif-item form { margin: 0; }
+.notif-item__texte { display: block; white-space: normal !important; color: var(--text) !important; font-size: .92rem !important; }
+
 /* --- Pages hors connexion (connexion, erreurs) ------------------------------- */
 .auth-page {
   min-height: 100vh;
@@ -787,6 +819,8 @@ a.cell-user:hover, a.list__main:hover { text-decoration: none; }
   .toasts { top: auto; bottom: 1rem; right: 1rem; left: 1rem; width: auto; }
   .breadcrumb { display: none; }
   .hide-mobile { display: none !important; }
+  .modes { grid-template-columns: minmax(0, 1fr); }
+  .suivi__etat { padding: 1.5rem 1rem 1.25rem; }
   .resume { grid-template-columns: 1fr 1fr; }
   .resume__item:nth-child(3) { grid-column: 1 / -1; }
   .frais-grid { grid-template-columns: minmax(0, 1fr); }

@@ -58,6 +58,16 @@ $notifications = Notification::dernieres((int) $moi['id_utilisateur'], 6);
                         <?php endforeach; ?>
                     </div>
                 <?php endif; ?>
+                <div class="notif-menu__pied">
+                    <a href="<?= url('/notifications') ?>" class="btn btn-ghost btn-sm">Voir toutes les notifications</a>
+                    <?php if ($nonLues > 0): ?>
+                        <form method="post" action="<?= url('/notifications/tout-lire') ?>">
+                            <?= csrf_champ() ?>
+                            <input type="hidden" name="retour" value="<?= e(cheminCourant()) ?>">
+                            <button type="submit" class="btn btn-ghost btn-sm" data-no-loading><?= icone('check', 'icon-sm') ?> Tout marquer comme lu</button>
+                        </form>
+                    <?php endif; ?>
+                </div>
             </div>
         </div>
 

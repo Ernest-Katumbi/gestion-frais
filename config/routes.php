@@ -63,8 +63,17 @@ $router->get('/paiements/{id}',     [PaiementController::class, 'afficher']);
 $router->get('/recus/{id}', [PaiementController::class, 'recu']);
 
 // Parent
-$router->get('/parent',            [ParentController::class, 'accueil']);
-$router->get('/parent/frais/{id}', [ParentController::class, 'frais']);
+$router->get('/parent',                      [ParentController::class, 'accueil']);
+$router->get('/parent/frais/{id}',           [ParentController::class, 'frais']);
+$router->get('/parent/frais/{id}/payer',     [ParentController::class, 'payer']);
+$router->post('/parent/frais/{id}/payer',    [ParentController::class, 'initierPaiement']);
+$router->get('/parent/paiements/{id}',       [ParentController::class, 'suivi']);
+$router->get('/parent/paiements/{id}/statut', [ParentController::class, 'statut']);
+
+// Notifications (tous les rôles)
+$router->get('/notifications',               [UserController::class, 'notifications']);
+$router->post('/notifications/tout-lire',    [UserController::class, 'toutMarquerLu']);
+$router->post('/notifications/{id}/lire',    [UserController::class, 'marquerLu']);
 
 // Mon compte (tous les rôles)
 $router->get('/compte',               [AuthController::class, 'compte']);

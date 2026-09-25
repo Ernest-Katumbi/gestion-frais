@@ -136,9 +136,11 @@ function cheminCourant(): string
     return Router::cheminDepuisUri($_SERVER['REQUEST_URI'] ?? '/');
 }
 
+/** Redirection vers un chemin interne (« /parent »), une URL déjà complète ou une URL absolue. */
 function rediriger(string $chemin): never
 {
-    header('Location: ' . (str_starts_with($chemin, 'http') ? $chemin : url($chemin)));
+    $dejaComplet = str_starts_with($chemin, 'http') || (cheminBase() !== '' && str_starts_with($chemin, cheminBase() . '/'));
+    header('Location: ' . ($dejaComplet ? $chemin : url($chemin)));
     exit;
 }
 
@@ -239,6 +241,22 @@ function accueilDuRole(string $role): string
         'admin'     => '/admin',
         'comptable' => '/comptable',
         default     => '/parent',
+    };
+}
+
+// --- Paiement électronique ---------------------------------------------------------
+
+/**
+ * Passerelle de paiement configurée (PAYMENT_DRIVER dans config.php).
+ * Tout le code passe par cette fonction : aucune passerelle n'est instanciée ailleurs.
+ */
+function passerelle(): PasserellePaiement
+{
+    static $instance = null;
+    return $instance ??= match (PAYMENT_DRIVER) {
+        'simulateur' => new SimulateurPasserelle(),
+        'reel'       => new PasserelleReelle(),
+        default      => throw new RuntimeException('PAYMENT_DRIVER inconnu : ' . PAYMENT_DRIVER),
     };
 }
 

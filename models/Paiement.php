@@ -169,6 +169,31 @@ final class Paiement
         return $requete->fetch();
     }
 
+    /** Paiement en ligne encore en attente pour un frais (un seul à la fois), ou null. */
+    public static function enAttentePourFrais(int $idFrais): ?array
+    {
+        $requete = Database::get()->prepare(
+            self::SELECT_DETAIL . " WHERE pa.id_frais = ? AND pa.statut = 'en_attente' ORDER BY pa.id_paiement DESC LIMIT 1"
+        );
+        $requete->execute([$idFrais]);
+        return $requete->fetch() ?: null;
+    }
+
+    /**
+     * Les paiements en ligne restés sans réponse de la passerelle au-delà du délai
+     * sont considérés comme abandonnés (échoués) : le parent peut alors réessayer.
+     * @return int nombre de paiements expirés
+     */
+    public static function expirerEnAttente(int $idFrais, int $minutes = 30): int
+    {
+        $requete = Database::get()->prepare(
+            "UPDATE paiement SET statut = 'echoue'
+             WHERE id_frais = ? AND statut = 'en_attente' AND date_paiement < NOW() - INTERVAL ? MINUTE"
+        );
+        $requete->execute([$idFrais, $minutes]);
+        return $requete->rowCount();
+    }
+
     /** Passe un paiement à un nouveau statut (utilisé par le callback de la passerelle). */
     public static function changerStatut(int $id, string $statut): void
     {

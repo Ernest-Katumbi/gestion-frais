@@ -1,0 +1,69 @@
+/* Simulateur de passerelle de paiement — identité visuelle volontairement distincte
+   de celle de l'Institut : c'est la page du prestataire, pas celle de l'école. */
+* { box-sizing: border-box; }
+body { margin: 0; min-height: 100vh; font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; color: #111827; }
+body.mode-mobile { background: radial-gradient(900px 500px at 50% 0%, #1E293B, #0B1120); }
+body.mode-carte { background: #EEF2FF; }
+code { font-family: ui-monospace, Consolas, monospace; }
+
+.bandeau-sandbox { padding: .45rem 1rem; background: #FACC15; color: #422006; font-size: .78rem; font-weight: 700; letter-spacing: .02em; text-align: center; }
+
+/* --- Téléphone (Mobile Money) --- */
+.scene { display: flex; flex-direction: column; align-items: center; padding: 2rem 1rem; }
+.scene__legende { max-width: 340px; margin-top: 1.25rem; color: #94A3B8; font-size: .8rem; text-align: center; }
+.telephone { position: relative; width: 320px; max-width: 100%; padding: 14px; border-radius: 44px; background: #0F0F10; box-shadow: 0 0 0 2px #2A2A2E, 0 30px 60px rgba(0, 0, 0, .55); }
+.telephone__encoche { position: absolute; top: 14px; left: 50%; width: 110px; height: 24px; transform: translateX(-50%); border-radius: 0 0 16px 16px; background: #0F0F10; z-index: 2; }
+.telephone__barre { display: flex; justify-content: space-between; padding: 10px 22px 6px; border-radius: 32px 32px 0 0; background: #0E7A3E; color: #fff; font-size: .72rem; font-weight: 600; }
+.telephone__ecran { min-height: 470px; padding: 1.1rem; border-radius: 0 0 32px 32px; background: linear-gradient(180deg, #0E7A3E 0, #0E7A3E 70px, #F3F4F6 70px); }
+.telephone__barre-bas { width: 110px; height: 4px; margin: 10px auto 2px; border-radius: 4px; background: #3F3F46; }
+
+.ussd { padding: 1.1rem 1rem 1rem; border-radius: 18px; background: #fff; box-shadow: 0 8px 24px rgba(0, 0, 0, .12); }
+.ussd__entete { margin: -1.1rem -1rem 1rem; padding: .7rem 1rem; border-radius: 18px 18px 0 0; background: #F0FDF4; color: #14532D; font-weight: 700; font-size: .85rem; text-align: center; }
+.ussd__message { margin: 0 0 .6rem; font-size: 1rem; line-height: 1.45; }
+.ussd__detail, .ussd__aide, .ussd__ref, .ussd__note { margin: 0 0 .8rem; color: #6B7280; font-size: .78rem; }
+.ussd label { display: block; margin-bottom: .35rem; font-size: .82rem; font-weight: 600; }
+.ussd input[type=password] { width: 100%; padding: .7rem; border: 2px solid #D1D5DB; border-radius: 12px; font-size: 1.5rem; letter-spacing: .6em; text-align: center; }
+.ussd input[type=password]:focus { outline: none; border-color: #0E7A3E; }
+.ussd__erreur { margin: 0 0 .6rem; padding: .5rem .6rem; border-radius: 8px; background: #FEE2E2; color: #991B1B; font-size: .8rem; }
+.ussd__btn { width: 100%; margin-top: .45rem; padding: .75rem; border: 0; border-radius: 12px; background: #E5E7EB; color: #111827; font: inherit; font-weight: 700; cursor: pointer; }
+.ussd__btn:hover { filter: brightness(.95); }
+.ussd__btn--ok { background: #0E7A3E; color: #fff; }
+.ussd__btn--test { background: #FEF3C7; color: #92400E; }
+.ussd__rangee { display: grid; grid-template-columns: 1fr 1fr; gap: .45rem; }
+.ussd--resultat { text-align: center; }
+.ussd--resultat h1 { margin: .4rem 0; font-size: 1.2rem; }
+.ussd__icone { display: inline-flex; align-items: center; justify-content: center; width: 64px; height: 64px; margin-top: .5rem; border-radius: 50%; font-size: 2rem; font-weight: 700; }
+.is-ok .ussd__icone { background: #DCFCE7; color: #15803D; }
+.is-ko .ussd__icone { background: #FEE2E2; color: #B91C1C; }
+
+/* --- Page de carte bancaire hébergée --- */
+.page-carte { display: flex; justify-content: center; padding: 2.5rem 1rem; }
+.carte-boite { width: 100%; max-width: 420px; padding: 1.6rem; border-radius: 16px; background: #fff; box-shadow: 0 20px 45px rgba(49, 46, 129, .15); }
+.carte-boite__entete { display: flex; align-items: center; gap: .75rem; margin-bottom: 1.2rem; }
+.carte-boite__entete strong { display: block; color: #312E81; }
+.carte-boite__entete span { color: #6B7280; font-size: .8rem; }
+.cadenas { display: inline-flex; align-items: center; justify-content: center; width: 40px; height: 40px; border-radius: 10px; background: #EEF2FF; }
+.carte-boite__marchand { display: grid; gap: .1rem; margin-bottom: 1.3rem; padding: 1rem; border-radius: 12px; background: #F5F7FF; }
+.carte-boite__marchand span { color: #4B5563; font-size: .85rem; }
+.carte-boite__marchand strong { font-size: 1.6rem; color: #1E1B4B; }
+.carte-boite__marchand small { color: #6B7280; }
+.formulaire-carte { display: grid; gap: .85rem; }
+.formulaire-carte label { display: grid; gap: .3rem; font-size: .82rem; font-weight: 600; color: #374151; }
+.formulaire-carte input { width: 100%; min-width: 0; padding: .7rem .8rem; border: 1px solid #D1D5DB; border-radius: 10px; font: inherit; font-size: .95rem; }
+.formulaire-carte input:focus { outline: none; border-color: #4F46E5; box-shadow: 0 0 0 3px rgba(79, 70, 229, .2); }
+.rangee { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: .75rem; }
+.formulaire-carte label { min-width: 0; }
+.bouton { display: block; width: 100%; padding: .8rem; border: 0; border-radius: 10px; background: #4F46E5; color: #fff; font: inherit; font-weight: 700; text-align: center; text-decoration: none; cursor: pointer; }
+.bouton:hover { background: #4338CA; }
+.bouton--secondaire { background: #E5E7EB; color: #111827; }
+.bouton--secondaire:hover { background: #D1D5DB; }
+.bouton--test { background: #FEF3C7; color: #92400E; }
+.bouton--test:hover { background: #FDE68A; }
+.aide { margin: 0; color: #6B7280; font-size: .75rem; }
+.erreur { margin: 0; padding: .6rem .75rem; border-radius: 8px; background: #FEE2E2; color: #991B1B; font-size: .85rem; }
+.carte-resultat { text-align: center; }
+.carte-resultat h1 { margin: .6rem 0 .3rem; font-size: 1.25rem; }
+.carte-resultat p { margin: 0 0 1.2rem; color: #4B5563; }
+.carte-resultat__icone { display: inline-flex; align-items: center; justify-content: center; width: 64px; height: 64px; border-radius: 50%; font-size: 2rem; font-weight: 700; }
+.carte-resultat.is-ok .carte-resultat__icone { background: #DCFCE7; color: #15803D; }
+.carte-resultat.is-ko .carte-resultat__icone { background: #FEE2E2; color: #B91C1C; }

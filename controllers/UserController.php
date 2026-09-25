@@ -157,6 +157,45 @@ final class UserController extends Controller
         $this->rediriger('/utilisateurs');
     }
 
+    // --- Notifications de l'utilisateur connecté (tous les rôles) ------------------------
+
+    public function notifications(): void
+    {
+        $moi = exigerRole();
+        $page = $this->page();
+        $resultat = Notification::lister((int) $moi['id_utilisateur'], $page, 15);
+        $this->vue('notifications', [
+            'titre'         => 'Notifications',
+            'fil'           => [['Notifications', null]],
+            'notifications' => $resultat['lignes'],
+            'nonLues'       => Notification::compterNonLues((int) $moi['id_utilisateur']),
+            'pagination'    => ['page' => $page, 'parPage' => 15, 'total' => $resultat['total']],
+        ]);
+    }
+
+    public function marquerLu(int $id): void
+    {
+        $moi = exigerRole();
+        // La condition sur id_utilisateur empêche de modifier la notification d'un autre.
+        Notification::marquerLue($id, (int) $moi['id_utilisateur']);
+        $this->rediriger($this->retourNotifications());
+    }
+
+    public function toutMarquerLu(): void
+    {
+        $moi = exigerRole();
+        $n = Notification::toutMarquerLues((int) $moi['id_utilisateur']);
+        Session::message('succes', $n > 0 ? "$n notification" . ($n > 1 ? 's marquées' : ' marquée') . ' comme lue' . ($n > 1 ? 's' : '') . '.' : 'Aucune notification non lue.');
+        $this->rediriger($this->retourNotifications());
+    }
+
+    /** Page d'où vient la demande (liste des notifications par défaut), limitée aux chemins internes. */
+    private function retourNotifications(): string
+    {
+        $retour = $this->post('retour');
+        return preg_match('#^/[a-z0-9/_-]*$#i', $retour) ? $retour : '/notifications';
+    }
+
     // --- Outils internes -------------------------------------------------------------
 
     private function donneesFormulaire(): array

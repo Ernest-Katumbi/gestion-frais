@@ -261,6 +261,23 @@ final class Frais
         return $requete->fetch();
     }
 
+    /**
+     * Frais non soldés dont l'échéance tombe entre $jour et $jour + $jours (inclus),
+     * avec les coordonnées du parent : utilisé par cron/rappels_echeances.php.
+     */
+    public static function aRappeler(string $jour, int $jours = 3): array
+    {
+        $requete = Database::get()->prepare(
+            str_replace('SELECT f.*,', 'SELECT f.*, p.nom AS parent_nom, p.email AS parent_email,', self::SELECT_DETAIL)
+            . " JOIN utilisateur p ON p.id_utilisateur = e.id_parent
+               WHERE f.statut <> 'paye' AND p.statut = 'actif'
+                 AND f.echeance BETWEEN ? AND ? + INTERVAL ? DAY
+               ORDER BY f.echeance, e.nom, e.prenom"
+        );
+        $requete->execute([$jour, $jour, $jours]);
+        return $requete->fetchAll();
+    }
+
     /** Frais non soldés dont l'échéance tombe dans les N prochains jours. */
     public static function echeancesProches(int $jours = 7): array
     {

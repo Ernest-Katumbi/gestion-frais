@@ -7,9 +7,35 @@ declare(strict_types=1);
  */
 final class Notificateur
 {
-    /** Envoie un e-mail (pilote « log » : écriture dans storage/logs/mail.log). */
+    /**
+     * Envoie un e-mail selon MAIL_DRIVER :
+     * - « log » (par défaut) : écriture dans storage/logs/mail.log, sans réseau ;
+     * - « smtp » : envoi réel par PHPMailer (composer require phpmailer/phpmailer), avec
+     *   repli sur le journal en cas d'échec pour ne jamais bloquer un paiement.
+     */
     public static function envoyerEmail(string $destinataire, string $sujet, string $corps): void
     {
+        if (MAIL_DRIVER === 'smtp' && class_exists(\PHPMailer\PHPMailer\PHPMailer::class)) {
+            try {
+                $mail = new \PHPMailer\PHPMailer\PHPMailer(true);
+                $mail->isSMTP();
+                $mail->Host = SMTP_HOST;
+                $mail->Port = SMTP_PORT;
+                $mail->SMTPAuth = SMTP_USER !== '';
+                $mail->Username = SMTP_USER;
+                $mail->Password = SMTP_PASS;
+                $mail->CharSet = 'UTF-8';
+                $mail->setFrom(MAIL_FROM, MAIL_FROM_NOM);
+                $mail->addAddress($destinataire);
+                $mail->Subject = $sujet;
+                $mail->Body = $corps;
+                $mail->send();
+                journaliser('mail', "E-MAIL ENVOYÉ PAR SMTP à $destinataire : $sujet");
+                return;
+            } catch (Throwable $e) {
+                journaliser('app', 'Échec SMTP (' . $e->getMessage() . ') : e-mail conservé dans mail.log.');
+            }
+        }
         journaliser('mail', sprintf(
             "E-MAIL ENVOYÉ\n  De      : %s <%s>\n  À       : %s\n  Sujet   : %s\n  Message :\n%s\n%s",
             MAIL_FROM_NOM,
@@ -55,6 +81,40 @@ final class Notificateur
             . "Votre reçu est disponible dans votre espace parent : " . urlAbsolue('/parent') . "\n\n"
             . "Merci de votre confiance.\nLa comptabilité de l'" . APP_NOM;
         self::envoyerEmail($p['parent_email'], 'Paiement reçu — ' . $p['categorie'] . ' — ' . $eleve, $corps);
+    }
+
+    /** Paiement en ligne refusé par la passerelle : notification et e-mail au parent. */
+    public static function paiementEchoue(int $idPaiement, string $raison = ''): void
+    {
+        $p = Paiement::trouver($idPaiement);
+        if ($p === null) {
+            throw new DomainException('Paiement introuvable.');
+        }
+        $eleve = $p['eleve_prenom'] . ' ' . $p['eleve_nom'];
+        $raison = $raison !== '' ? $raison : 'refusé par la passerelle';
+        Notification::creer((int) $p['id_parent'], 'paiement', sprintf(
+            'Échec du paiement de %s pour « %s » de %s (réf. %s) : %s. Aucun montant n\'a été débité.',
+            formaterMontant($p['montant']), $p['categorie'], $eleve, $p['reference'], $raison
+        ));
+        self::envoyerEmail($p['parent_email'], 'Paiement non abouti — ' . $p['categorie'] . ' — ' . $eleve,
+            "Bonjour {$p['parent_nom']},\n\n"
+            . 'Votre paiement de ' . formaterMontant($p['montant']) . " pour « {$p['categorie']} » de $eleve n'a pas abouti.\n"
+            . "Motif : $raison.\nRéférence : {$p['reference']}\n\n"
+            . "Aucun montant n'a été débité. Vous pouvez réessayer depuis votre espace parent : " . urlAbsolue('/parent') . "\n\n"
+            . "La comptabilité de l'" . APP_NOM);
+    }
+
+    /**
+     * Rappel d'échéance (cron) : notification interne et e-mail.
+     * @param array $f frais détaillé (Frais::trouver) avec parent_email et parent_nom
+     */
+    public static function rappelEcheance(array $f, string $message): void
+    {
+        Notification::creer((int) $f['id_parent'], 'echeance', $message);
+        self::envoyerEmail($f['parent_email'], 'Rappel d\'échéance — ' . $f['categorie'],
+            "Bonjour {$f['parent_nom']},\n\n$message\n\n"
+            . "Vous pouvez payer en ligne (Mobile Money ou carte) depuis votre espace parent : " . urlAbsolue('/parent')
+            . "\nou au guichet de l'Institut.\n\nLa comptabilité de l'" . APP_NOM);
     }
 
     /** E-mail de bienvenue contenant le mot de passe provisoire d'un nouveau compte. */
