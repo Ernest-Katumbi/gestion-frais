@@ -150,18 +150,18 @@ final class User
 
     public static function compterAdminsActifs(): int
     {
-        return (int) Database::get()
-            ->query("SELECT COUNT(*) FROM utilisateur WHERE role = 'admin' AND statut = 'actif'")
-            ->fetchColumn();
+        $requete = Database::get()->prepare('SELECT COUNT(*) FROM utilisateur WHERE role = ? AND statut = ?');
+        $requete->execute(['admin', 'actif']);
+        return (int) $requete->fetchColumn();
     }
 
     /** Nombre d'utilisateurs actifs par rôle, ex. ['admin' => 1, 'comptable' => 1, 'parent' => 4]. */
     public static function compterParRole(): array
     {
         $resultat = array_fill_keys(array_keys(self::ROLES), 0);
-        $lignes = Database::get()
-            ->query("SELECT role, COUNT(*) AS n FROM utilisateur WHERE statut = 'actif' GROUP BY role")
-            ->fetchAll();
+        $requete = Database::get()->prepare('SELECT role, COUNT(*) AS n FROM utilisateur WHERE statut = ? GROUP BY role');
+        $requete->execute(['actif']);
+        $lignes = $requete->fetchAll();
         foreach ($lignes as $ligne) {
             $resultat[$ligne['role']] = (int) $ligne['n'];
         }
@@ -170,7 +170,9 @@ final class User
 
     public static function compterInactifs(): int
     {
-        return (int) Database::get()->query("SELECT COUNT(*) FROM utilisateur WHERE statut = 'inactif'")->fetchColumn();
+        $requete = Database::get()->prepare('SELECT COUNT(*) FROM utilisateur WHERE statut = ?');
+        $requete->execute(['inactif']);
+        return (int) $requete->fetchColumn();
     }
 
     /** Derniers comptes créés (tableau de bord). */
