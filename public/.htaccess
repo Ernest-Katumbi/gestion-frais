@@ -1,0 +1,13 @@
+Options -Indexes
+RewriteEngine On
+# À adapter si l'application n'est pas servie sous /gestion-frais/public/
+RewriteBase /gestion-frais/public/
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteRule ^ index.php [QSA,L]
+
+<IfModule mod_headers.c>
+    <FilesMatch "\.(css|js|svg|png|woff2?)$">
+        Header set Cache-Control "public, max-age=604800"
+    </FilesMatch>
+</IfModule>

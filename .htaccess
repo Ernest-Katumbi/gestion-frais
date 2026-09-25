@@ -1,0 +1,6 @@
+# Seul le dossier public/ est accessible depuis le navigateur.
+Options -Indexes
+RewriteEngine On
+RewriteBase /gestion-frais/
+RewriteRule ^$ public/ [R=302,L]
+RewriteRule ^(?!public(/|$)) - [F,L]
