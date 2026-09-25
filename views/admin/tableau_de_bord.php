@@ -1,52 +1,118 @@
 <?php
 /**
  * Tableau de bord de l'administrateur.
- * @var array $parRole  nombre d'utilisateurs actifs par rôle
+ * @var array $parRole         nombre d'utilisateurs actifs par rôle
  * @var int   $inactifs
- * @var array $derniers derniers comptes créés
+ * @var int   $nbEleves
+ * @var array $classes         classes avec leur effectif
+ * @var array $derniersEleves
+ * @var array $derniers        derniers comptes créés
  */
 $moi = utilisateur();
+$effectifMax = max([1, ...array_map('intval', array_column($classes, 'nb_eleves'))]);
 ?>
 <section class="card welcome mb-3">
     <div>
         <h2>Bonjour, <?= e($moi['nom']) ?></h2>
-        <p>Voici un aperçu des comptes de la plateforme de l'<?= e(APP_NOM) ?>.</p>
+        <p>Voici la situation des inscriptions et des comptes de l'<?= e(APP_NOM) ?>.</p>
     </div>
     <img class="welcome__art" src="<?= asset('img/logo.svg') ?>" alt="">
 </section>
 
 <div class="grid grid-4 mb-3">
-    <div class="card stat">
-        <span class="stat__icon"><?= icone('users') ?></span>
+    <a class="card stat stat-link" href="<?= url('/eleves') ?>">
+        <span class="stat__icon"><?= icone('graduation-cap') ?></span>
+        <div>
+            <p class="stat__label">Élèves inscrits</p>
+            <p class="stat__value"><?= $nbEleves ?></p>
+            <p class="stat__hint">répartis dans <?= count($classes) ?> classe<?= count($classes) > 1 ? 's' : '' ?></p>
+        </div>
+    </a>
+    <a class="card stat stat-link" href="<?= url('/utilisateurs', ['role' => 'parent']) ?>">
+        <span class="stat__icon is-info"><?= icone('users') ?></span>
         <div>
             <p class="stat__label">Parents actifs</p>
             <p class="stat__value"><?= $parRole['parent'] ?></p>
+            <p class="stat__hint">comptes parents</p>
         </div>
-    </div>
-    <div class="card stat">
-        <span class="stat__icon is-info"><?= icone('wallet') ?></span>
-        <div>
-            <p class="stat__label">Comptables</p>
-            <p class="stat__value"><?= $parRole['comptable'] ?></p>
-        </div>
-    </div>
-    <div class="card stat">
+    </a>
+    <a class="card stat stat-link" href="<?= url('/utilisateurs') ?>">
         <span class="stat__icon is-success"><?= icone('shield-check') ?></span>
         <div>
-            <p class="stat__label">Administrateurs</p>
-            <p class="stat__value"><?= $parRole['admin'] ?></p>
+            <p class="stat__label">Personnel</p>
+            <p class="stat__value"><?= $parRole['admin'] + $parRole['comptable'] ?></p>
+            <p class="stat__hint"><?= $parRole['admin'] ?> admin. · <?= $parRole['comptable'] ?> comptable<?= $parRole['comptable'] > 1 ? 's' : '' ?></p>
         </div>
-    </div>
-    <div class="card stat">
+    </a>
+    <a class="card stat stat-link" href="<?= url('/utilisateurs', ['statut' => 'inactif']) ?>">
         <span class="stat__icon is-warning"><?= icone('user-x') ?></span>
         <div>
             <p class="stat__label">Comptes désactivés</p>
             <p class="stat__value"><?= $inactifs ?></p>
+            <p class="stat__hint">historique conservé</p>
         </div>
-    </div>
+    </a>
 </div>
 
-<div class="grid grid-main-side">
+<div class="grid grid-main-side mb-3">
+    <section class="card">
+        <div class="card__header">
+            <h3>Effectifs par classe</h3>
+            <a href="<?= url('/classes') ?>" class="btn btn-ghost btn-sm">Gérer les classes <?= icone('arrow-right') ?></a>
+        </div>
+        <?php if ($classes === []): ?>
+            <?= View::partiel('vide', [
+                'icone' => 'school', 'titre' => 'Aucune classe', 'texte' => 'Créez les classes de l\'Institut pour commencer les inscriptions.',
+                'action' => '<a href="' . url('/classes/nouveau') . '" class="btn btn-primary">' . icone('plus') . ' Créer une classe</a>',
+            ]) ?>
+        <?php else: ?>
+            <ul class="bars card__body">
+                <?php foreach ($classes as $c): ?>
+                    <?php $nb = (int) $c['nb_eleves']; ?>
+                    <li>
+                        <a class="bars__label" href="<?= url('/eleves', ['classe' => (int) $c['id_classe']]) ?>"><?= e($c['libelle']) ?></a>
+                        <span class="bars__track"><span class="bars__fill" style="width: <?= round($nb / $effectifMax * 100, 1) ?>%"></span></span>
+                        <span class="bars__value num"><?= $nb ?></span>
+                    </li>
+                <?php endforeach; ?>
+            </ul>
+        <?php endif; ?>
+    </section>
+
+    <aside class="card">
+        <div class="card__header"><h3>Actions rapides</h3></div>
+        <div class="card__body grid">
+            <a class="btn btn-primary btn-block" href="<?= url('/eleves/nouveau') ?>"><?= icone('graduation-cap') ?> Inscrire un élève</a>
+            <a class="btn btn-secondary btn-block" href="<?= url('/classes/nouveau') ?>"><?= icone('school') ?> Créer une classe</a>
+            <a class="btn btn-secondary btn-block" href="<?= url('/utilisateurs/nouveau') ?>"><?= icone('user-plus') ?> Créer un utilisateur</a>
+        </div>
+    </aside>
+</div>
+
+<div class="grid grid-2">
+    <section class="card">
+        <div class="card__header">
+            <h3>Dernières inscriptions</h3>
+            <a href="<?= url('/eleves') ?>" class="btn btn-ghost btn-sm">Tout voir <?= icone('arrow-right') ?></a>
+        </div>
+        <?php if ($derniersEleves === []): ?>
+            <?= View::partiel('vide', ['icone' => 'graduation-cap', 'titre' => 'Aucun élève inscrit', 'texte' => 'Les nouvelles inscriptions apparaîtront ici.']) ?>
+        <?php else: ?>
+            <ul class="list">
+                <?php foreach ($derniersEleves as $el): ?>
+                    <li>
+                        <span class="avatar avatar-sm"><?= e(initiales($el['prenom'] . ' ' . $el['nom'])) ?></span>
+                        <a class="list__main" href="<?= url('/eleves/' . (int) $el['id_eleve']) ?>">
+                            <strong><?= e($el['prenom'] . ' ' . $el['nom']) ?></strong>
+                            <span><?= e($el['matricule']) ?> · inscrit(e) le <?= e(formaterDate($el['date_inscription'])) ?></span>
+                        </a>
+                        <span class="badge badge-parent no-dot"><?= e($el['classe']) ?></span>
+                    </li>
+                <?php endforeach; ?>
+            </ul>
+        <?php endif; ?>
+    </section>
+
     <section class="card">
         <div class="card__header">
             <h3>Derniers comptes créés</h3>
@@ -60,22 +126,9 @@ $moi = utilisateur();
                         <strong><?= e($u['nom']) ?></strong>
                         <span><?= e($u['email']) ?> · créé le <?= e(formaterDate($u['date_creation'])) ?></span>
                     </div>
-                    <span class="badge badge-<?= e($u['role']) ?>"><?= e(libelleRole($u['role'])) ?></span>
+                    <span class="badge badge-<?= e($u['role']) ?> no-dot"><?= e(libelleRole($u['role'])) ?></span>
                 </li>
             <?php endforeach; ?>
         </ul>
     </section>
-
-    <aside class="card">
-        <div class="card__header"><h3>Actions rapides</h3></div>
-        <div class="card__body grid">
-            <a class="btn btn-primary btn-block" href="<?= url('/utilisateurs/nouveau') ?>"><?= icone('user-plus') ?> Créer un utilisateur</a>
-            <?php if (Router::instance()->existe('/eleves/nouveau')): ?>
-                <a class="btn btn-secondary btn-block" href="<?= url('/eleves/nouveau') ?>"><?= icone('graduation-cap') ?> Inscrire un élève</a>
-            <?php endif; ?>
-            <?php if (Router::instance()->existe('/classes')): ?>
-                <a class="btn btn-secondary btn-block" href="<?= url('/classes') ?>"><?= icone('school') ?> Gérer les classes</a>
-            <?php endif; ?>
-        </div>
-    </aside>
 </div>

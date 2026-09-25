@@ -4,7 +4,7 @@ Prototype d'application web de gestion des frais scolaires avec paiement électr
 (Institut des Oliviers, Kolwezi, RDC). PHP 8.1+ natif (MVC), MySQL/MariaDB via PDO,
 HTML/CSS/JS sans framework ni CDN.
 
-> Document provisoire (itération 1). La procédure complète d'installation sous XAMPP,
+> Document provisoire (itérations 1 et 2). La procédure complète d'installation sous XAMPP,
 > les tests et le cron seront détaillés à l'itération 5.
 
 ## Installation rapide (XAMPP)

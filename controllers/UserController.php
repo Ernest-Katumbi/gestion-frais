@@ -12,10 +12,13 @@ final class UserController extends Controller
     {
         exigerRole('admin');
         $this->vue('admin/tableau_de_bord', [
-            'titre'     => 'Tableau de bord',
-            'parRole'   => User::compterParRole(),
-            'inactifs'  => User::compterInactifs(),
-            'derniers'  => User::derniers(5),
+            'titre'          => 'Tableau de bord',
+            'parRole'        => User::compterParRole(),
+            'inactifs'       => User::compterInactifs(),
+            'nbEleves'       => Eleve::compter(),
+            'classes'        => Classe::toutes(),
+            'derniersEleves' => Eleve::derniers(6),
+            'derniers'       => User::derniers(4),
         ]);
     }
 

@@ -20,17 +20,7 @@ $filtreActif = $filtres['q'] !== '' || $filtres['role'] !== '' || $filtres['stat
 </div>
 
 <?php if ($provisoire): ?>
-    <div class="alert alert-olive mb-3" role="status">
-        <?= icone('key') ?>
-        <div style="flex:1">
-            <strong>Mot de passe provisoire de <?= e($provisoire['nom']) ?></strong>
-            <p class="mb-0">Communiquez-le à l'utilisateur (<?= e($provisoire['email']) ?>). Il ne sera plus affiché ; une copie de l'e-mail de bienvenue a été enregistrée dans le journal des e-mails.</p>
-            <div class="secret-box">
-                <code><?= e($provisoire['mot_de_passe']) ?></code>
-                <button type="button" class="btn btn-secondary btn-sm" data-copy="<?= e($provisoire['mot_de_passe']) ?>"><?= icone('copy') ?> Copier</button>
-            </div>
-        </div>
-    </div>
+    <?= View::partiel('mot_de_passe_provisoire', ['provisoire' => $provisoire]) ?>
 <?php endif; ?>
 
 <section class="card">

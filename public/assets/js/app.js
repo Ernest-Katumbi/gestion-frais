@@ -234,10 +234,10 @@
   document.querySelectorAll('[data-copy]').forEach(function (bouton) {
     bouton.addEventListener('click', function () {
       var texte = bouton.dataset.copy;
-      var origine = bouton.innerHTML;
+      var origine = Array.prototype.map.call(bouton.childNodes, function (n) { return n.cloneNode(true); });
       var fini = function () {
         bouton.textContent = 'Copié !';
-        setTimeout(function () { bouton.innerHTML = origine; }, 1500);
+        setTimeout(function () { bouton.replaceChildren.apply(bouton, origine); }, 1500);
       };
       if (navigator.clipboard) navigator.clipboard.writeText(texte).then(fini, fini);
     });
@@ -250,6 +250,101 @@
       document.getElementById('mot_de_passe').value = bouton.dataset.demoPassword;
       document.getElementById('mot_de_passe').focus();
     });
+  });
+
+  // --- Inscription d'un élève : recherche du compte parent --------------------
+  // Indique si l'e-mail saisi correspond à un compte existant (rattachement)
+  // ou si un nouveau compte parent sera créé (champs nom / téléphone / adresse).
+  document.querySelectorAll('[data-parent-lookup]').forEach(function (bloc) {
+    var champ = bloc.querySelector('input[name="email_parent"]');
+    var statut = bloc.querySelector('[data-parent-status]');
+    var nouveau = bloc.querySelector('[data-parent-nouveau]');
+    var nomParent = bloc.querySelector('input[name="nom_parent"]');
+    var minuterie = null;
+    var derniere = null;
+
+    // Message construit avec textContent : aucune donnée n'est interprétée comme du HTML.
+    function afficher(type, icone, titre, details) {
+      statut.className = 'span-2 parent-status is-' + type;
+      statut.replaceChildren();
+      var modele = document.querySelector('template[data-icone="' + icone + '"]');
+      if (modele) statut.appendChild(modele.content.cloneNode(true));
+      var texte = document.createElement('div');
+      var fort = document.createElement('strong');
+      fort.textContent = titre;
+      texte.appendChild(fort);
+      details.forEach(function (ligne) {
+        texte.appendChild(document.createElement('br'));
+        texte.appendChild(document.createTextNode(ligne));
+      });
+      statut.appendChild(texte);
+    }
+    function basculerNouveau(visible) {
+      nouveau.classList.toggle('hidden', !visible);
+      nomParent.required = visible;
+      // Astérisque « obligatoire » sur le libellé du nom du parent.
+      var libelle = bloc.querySelector('label[for="nom_parent"]');
+      var etoile = libelle.querySelector('.required');
+      if (visible && !etoile) {
+        etoile = document.createElement('span');
+        etoile.className = 'required';
+        etoile.setAttribute('aria-hidden', 'true');
+        etoile.textContent = '*';
+        libelle.appendChild(etoile);
+      } else if (!visible && etoile) {
+        etoile.remove();
+      }
+      if (!visible) {
+        nouveau.querySelectorAll('input').forEach(function (i) { i.setCustomValidity(''); });
+      }
+    }
+
+    function verifier() {
+      var email = champ.value.trim().toLowerCase();
+      if (email === derniere) return;
+      derniere = email;
+      if (!champ.checkValidity() || email === '') {
+        statut.classList.add('hidden');
+        basculerNouveau(true);
+        return;
+      }
+      fetch(bloc.dataset.parentLookup + '?email=' + encodeURIComponent(email), {
+        headers: { 'Accept': 'application/json' },
+        credentials: 'same-origin'
+      })
+        .then(function (r) { return r.json(); })
+        .then(function (d) {
+          if (email !== champ.value.trim().toLowerCase() || !d.valide) return;
+          if (!d.existe) {
+            afficher('nouveau', 'user-plus', 'Aucun compte avec cette adresse.',
+              ['Un compte parent sera créé : complétez les informations ci-dessous.']);
+            basculerNouveau(true);
+          } else if (d.role !== 'parent') {
+            afficher('erreur', 'alert-circle', 'Adresse déjà utilisée par un compte du personnel.',
+              ['Saisissez l’e-mail du parent.']);
+            basculerNouveau(false);
+          } else if (!d.actif) {
+            afficher('erreur', 'alert-circle', 'Le compte de ' + d.nom + ' est désactivé.',
+              ['Réactivez-le d’abord dans « Utilisateurs ».']);
+            basculerNouveau(false);
+          } else {
+            var infos = [];
+            if (d.telephone) infos.push(d.telephone);
+            if (d.enfants > 0) infos.push(d.enfants + ' enfant' + (d.enfants > 1 ? 's' : '') + ' déjà rattaché' + (d.enfants > 1 ? 's' : ''));
+            afficher('existant', 'user-check', 'Compte existant : ' + d.nom,
+              (infos.length ? [infos.join(' · ')] : []).concat(['L’élève sera rattaché à ce compte.']));
+            basculerNouveau(false);
+          }
+        })
+        .catch(function () { statut.classList.add('hidden'); basculerNouveau(true); });
+    }
+
+    champ.addEventListener('input', function () {
+      clearTimeout(minuterie);
+      minuterie = setTimeout(verifier, 450);
+    });
+    champ.addEventListener('change', verifier);
+    if (champ.value.trim() !== '') verifier();
   });
 
   // --- Filtres : soumission automatique à la sélection -------------------------
