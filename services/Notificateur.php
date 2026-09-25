@@ -21,6 +21,42 @@ final class Notificateur
         ));
     }
 
+    /**
+     * Paiement confirmé : notification interne au parent (cloche) et e-mail.
+     * Appelé dans la transaction qui valide le paiement (guichet ou callback de la passerelle).
+     */
+    public static function paiementConfirme(int $idPaiement): void
+    {
+        $p = Paiement::trouver($idPaiement);
+        if ($p === null) {
+            throw new DomainException('Paiement introuvable.');
+        }
+        $eleve = $p['eleve_prenom'] . ' ' . $p['eleve_nom'];
+        $reste = (float) $p['frais_reste'];
+        $message = sprintf(
+            'Paiement de %s reçu pour « %s » de %s. Reçu n° %s.%s',
+            formaterMontant($p['montant']),
+            $p['categorie'],
+            $eleve,
+            $p['recu_numero'] ?? '—',
+            $reste > 0 ? ' Reste à payer : ' . formaterMontant($reste) . '.' : ' Ce frais est soldé.'
+        );
+        Notification::creer((int) $p['id_parent'], 'paiement', $message);
+
+        $corps = "Bonjour {$p['parent_nom']},\n\n"
+            . "Nous confirmons la réception de votre paiement.\n\n"
+            . "Élève          : $eleve ({$p['matricule']}, {$p['classe']})\n"
+            . "Frais          : {$p['categorie']}\n"
+            . 'Montant payé   : ' . formaterMontant($p['montant']) . "\n"
+            . 'Mode           : ' . Paiement::MODES[$p['mode']] . "\n"
+            . "Référence      : {$p['reference']}\n"
+            . 'Reçu           : ' . ($p['recu_numero'] ?? '—') . "\n"
+            . 'Reste à payer  : ' . formaterMontant($reste) . "\n\n"
+            . "Votre reçu est disponible dans votre espace parent : " . urlAbsolue('/parent') . "\n\n"
+            . "Merci de votre confiance.\nLa comptabilité de l'" . APP_NOM;
+        self::envoyerEmail($p['parent_email'], 'Paiement reçu — ' . $p['categorie'] . ' — ' . $eleve, $corps);
+    }
+
     /** E-mail de bienvenue contenant le mot de passe provisoire d'un nouveau compte. */
     public static function compteCree(array $utilisateur, string $motDePasseProvisoire): void
     {

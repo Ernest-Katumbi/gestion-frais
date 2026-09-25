@@ -51,6 +51,32 @@ function initiales(string $nom): string
     return implode('', $lettres);
 }
 
+/** Badge coloré d'un statut de frais (impayé, partiel, payé) ou de paiement (en attente, réussi, échoué). */
+function badgeStatut(string $statut): string
+{
+    $libelles = Frais::STATUTS + Paiement::STATUTS;
+    return '<span class="badge badge-' . e($statut) . '">' . e($libelles[$statut] ?? $statut) . '</span>';
+}
+
+/** Part payée d'un montant, en pourcentage entier (0 à 100). */
+function pourcentagePaye(float|string $paye, float|string $du): int
+{
+    return (float) $du > 0 ? (int) min(100, floor((float) $paye / (float) $du * 100)) : 0;
+}
+
+/** Libellé d'une échéance relative à aujourd'hui : « en retard de 5 jours », « dans 3 jours »… */
+function libelleEcheance(string $echeance): string
+{
+    $jours = (int) (new DateTimeImmutable('today'))->diff(new DateTimeImmutable($echeance))->format('%r%a');
+    return match (true) {
+        $jours < -1 => 'en retard de ' . abs($jours) . ' jours',
+        $jours === -1 => 'en retard d\'un jour',
+        $jours === 0 => 'aujourd\'hui',
+        $jours === 1 => 'demain',
+        default => 'dans ' . $jours . ' jours',
+    };
+}
+
 function libelleRole(string $role): string
 {
     return User::ROLES[$role] ?? $role;

@@ -48,13 +48,41 @@ $nom = $eleve['prenom'] . ' ' . $eleve['nom'];
 <?php endif; ?>
 
 <div class="grid grid-main-side">
-    <section class="card">
-        <div class="card__header"><h3>Frais scolaires</h3></div>
-        <?= View::partiel('vide', [
-            'icone' => 'receipt',
-            'titre' => 'Aucun frais affecté pour l\'instant',
-            'texte' => 'Les frais (minerval, inscription, examens) apparaîtront ici dès que le comptable les aura affectés à la classe.',
-        ]) ?>
+    <section class="card" style="align-self:start">
+        <div class="card__header">
+            <h3>Frais scolaires</h3>
+            <?php if ($frais !== []): ?>
+                <?php $t = Frais::totaux($frais); ?>
+                <span class="text-small text-muted">Reste <strong class="num"><?= e(formaterMontant($t['reste'])) ?></strong> sur <?= e(formaterMontant($t['du'])) ?></span>
+            <?php endif; ?>
+        </div>
+        <?php if ($frais === []): ?>
+            <?= View::partiel('vide', [
+                'icone' => 'receipt',
+                'titre' => 'Aucun frais affecté pour l\'instant',
+                'texte' => 'Les frais (minerval, inscription, examens) apparaîtront ici dès que le comptable les aura affectés à la classe.',
+            ]) ?>
+        <?php else: ?>
+            <div class="table-wrap">
+                <table class="table table-stack">
+                    <thead>
+                        <tr><th>Frais</th><th>Échéance</th><th class="col-num">Montant</th><th class="col-num">Payé</th><th class="col-num">Reste</th><th>Statut</th></tr>
+                    </thead>
+                    <tbody>
+                        <?php foreach ($frais as $f): ?>
+                            <tr>
+                                <td class="cell-main"><strong><?= e($f['categorie']) ?></strong></td>
+                                <td data-label="Échéance" class="num"><?= e(formaterDate($f['echeance'])) ?></td>
+                                <td data-label="Montant" class="col-num num"><?= e(formaterMontant($f['montant'])) ?></td>
+                                <td data-label="Payé" class="col-num num"><?= e(formaterMontant($f['montant_paye'])) ?></td>
+                                <td data-label="Reste" class="col-num num fw-600"><?= e(formaterMontant($f['reste'])) ?></td>
+                                <td data-label="Statut"><?= badgeStatut($f['statut']) ?></td>
+                            </tr>
+                        <?php endforeach; ?>
+                    </tbody>
+                </table>
+            </div>
+        <?php endif; ?>
     </section>
 
     <aside class="grid" style="align-content:start">

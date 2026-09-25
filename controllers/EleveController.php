@@ -41,6 +41,7 @@ final class EleveController extends Controller
             'eleve'      => $eleve,
             'freres'     => $freres,
             'supprimable' => !Eleve::aDesPaiements($id),
+            'frais'      => Frais::parEleve($id),
             'provisoire' => Session::lireFlash('mot_de_passe_provisoire'),
         ]);
     }

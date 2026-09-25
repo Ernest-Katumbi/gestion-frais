@@ -42,8 +42,29 @@ $router->post('/eleves/{id}/supprimer',    [EleveController::class, 'supprimer']
 // Comptable
 $router->get('/comptable', [RapportController::class, 'tableauDeBord']);
 
+$router->get('/categories',                  [FraisController::class, 'categories']);
+$router->get('/categories/nouveau',          [FraisController::class, 'categorieCreer']);
+$router->post('/categories',                 [FraisController::class, 'categorieEnregistrer']);
+$router->get('/categories/{id}/modifier',    [FraisController::class, 'categorieModifier']);
+$router->post('/categories/{id}',            [FraisController::class, 'categorieMettreAJour']);
+$router->post('/categories/{id}/supprimer',  [FraisController::class, 'categorieSupprimer']);
+
+$router->get('/frais',           [FraisController::class, 'index']);
+$router->post('/frais/affecter', [FraisController::class, 'affecter']);
+$router->post('/frais/annuler',  [FraisController::class, 'annuler']);
+$router->get('/impayes',         [FraisController::class, 'impayes']);
+
+$router->get('/paiements/guichet',  [PaiementController::class, 'guichet']);
+$router->post('/paiements/guichet', [PaiementController::class, 'encaisser']);
+$router->get('/paiements',          [PaiementController::class, 'index']);
+$router->get('/paiements/{id}',     [PaiementController::class, 'afficher']);
+
+// Reçus PDF (comptable, administrateur, parent propriétaire)
+$router->get('/recus/{id}', [PaiementController::class, 'recu']);
+
 // Parent
-$router->get('/parent', [ParentController::class, 'accueil']);
+$router->get('/parent',            [ParentController::class, 'accueil']);
+$router->get('/parent/frais/{id}', [ParentController::class, 'frais']);
 
 // Mon compte (tous les rôles)
 $router->get('/compte',               [AuthController::class, 'compte']);

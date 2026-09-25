@@ -365,7 +365,7 @@ code, kbd { font-family: ui-monospace, "Cascadia Mono", Consolas, monospace; fon
 .card__body { padding: 1.25rem; }
 .card__footer { padding: .9rem 1.25rem; border-top: 1px solid var(--border); background: #FCFDFE; border-radius: 0 0 var(--radius-lg) var(--radius-lg); }
 
-.grid { display: grid; gap: 1.25rem; }
+.grid { display: grid; gap: 1.25rem; grid-template-columns: minmax(0, 1fr); }
 .grid-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 .grid-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 .grid-4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
@@ -611,6 +611,109 @@ a.cell-user:hover, a.list__main:hover { text-decoration: none; }
 .text-break { overflow-wrap: anywhere; }
 .hide-desktop { display: none !important; }
 
+/* --- Composants financiers ------------------------------------------------------ */
+.grid-side-main { grid-template-columns: minmax(0, 360px) minmax(0, 1fr); }
+
+/* Barre de progression (part payée) */
+.progress { display: block; width: 100%; height: 8px; overflow: hidden; border-radius: 999px; background: var(--surface-2); }
+.progress__bar { display: block; height: 100%; border-radius: 999px; background: linear-gradient(90deg, #E6A23C, var(--warning)); transition: width .4s var(--ease); }
+.progress__bar.is-complete { background: var(--success); }
+.progress-line { display: flex; align-items: center; gap: .6rem; min-width: 140px; }
+.progress-line .progress { flex: 1; }
+
+/* Cases à cocher */
+.checks { margin: 0; padding: 0; border: 0; }
+.checks legend { margin-bottom: .45rem; padding: 0; }
+.check { display: flex; align-items: center; gap: .6rem; padding: .5rem .7rem; border: 1px solid var(--border); border-radius: var(--radius-sm); cursor: pointer; font-size: .9rem; transition: background .15s, border-color .15s; }
+.check + .check { margin-top: .35rem; }
+.check:hover { background: var(--surface-2); }
+.check:has(input:checked) { background: var(--primary-soft); border-color: #C9D6BD; }
+.check input { width: 17px; height: 17px; margin: 0; accent-color: var(--primary); }
+.check__meta { margin-left: auto; color: var(--text-muted); font-size: .8rem; }
+.check--all { border-style: dashed; font-weight: 600; }
+.check--inline { padding: .45rem .7rem; }
+.toolbar__field { display: flex; align-items: center; gap: .45rem; }
+.toolbar__field input { width: auto; }
+
+/* Choix d'un frais (guichet) */
+.radio-cards { display: grid; gap: .7rem; }
+.radio-card { position: relative; display: flex; gap: .8rem; padding: .9rem 1rem; border: 1.5px solid var(--border); border-radius: var(--radius); cursor: pointer; transition: border-color .15s, background .15s, box-shadow .15s; }
+.radio-card:hover { border-color: #B8C9A8; }
+.radio-card:has(input:checked) { border-color: var(--primary); background: #FAFCF8; box-shadow: 0 0 0 3px var(--primary-ring); }
+.radio-card input { width: 18px; height: 18px; margin: .15rem 0 0; accent-color: var(--primary); flex-shrink: 0; }
+.radio-card__body { display: grid; flex: 1; gap: .4rem; min-width: 0; }
+.radio-card__head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: .5rem; }
+.radio-card__meta { font-size: .82rem; color: var(--text-muted); }
+.radio-card__amounts { display: flex; flex-wrap: wrap; gap: .3rem 1.2rem; font-size: .84rem; color: var(--text-muted); }
+.radio-card__amounts b { color: var(--text); font-weight: 600; }
+.card__header--top { border-top: 1px solid var(--border); }
+.input-suffix { position: relative; }
+.input-suffix input { padding-right: 3.6rem; font-size: 1.15rem; font-weight: 600; font-variant-numeric: tabular-nums; }
+.input-suffix span { position: absolute; top: 50%; right: .85rem; transform: translateY(-50%); color: var(--text-muted); font-size: .85rem; font-weight: 600; }
+.static-field { display: flex; align-items: center; gap: .5rem; min-height: 42px; padding: .55rem .8rem; border: 1px dashed var(--border-strong); border-radius: var(--radius-sm); background: var(--surface-2); color: #334155; font-size: .93rem; }
+.apercu { margin-top: 1rem; padding: .7rem .9rem; border-radius: var(--radius-sm); font-size: .88rem; font-weight: 500; }
+.apercu.is-solde { background: var(--success-soft); color: var(--success-text); }
+.apercu.is-partiel { background: var(--warning-soft); color: var(--warning-text); }
+.card__footer.form-actions { padding-top: .9rem; border-top: 1px solid var(--border); }
+.profile__totaux { display: flex; flex-wrap: wrap; gap: 1.5rem; }
+.profile__totaux div, .mini-totaux div { display: grid; }
+.profile__totaux span, .mini-totaux span { font-size: .75rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: .04em; }
+.profile__totaux strong { font-size: 1.1rem; }
+.mini-totaux { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1rem; margin-top: .9rem; }
+
+/* Détail d'un paiement */
+.status-banner { display: flex; align-items: center; gap: .9rem; padding: 1rem 1.25rem; border-bottom: 1px solid var(--border); border-radius: var(--radius-lg) var(--radius-lg) 0 0; }
+.status-banner .icon { width: 26px; height: 26px; }
+.status-banner strong { display: block; }
+.status-banner .num { font-size: 1.5rem; font-weight: 700; letter-spacing: -.02em; }
+.status-banner.is-success { background: #F0FDF4; color: var(--success-text); }
+.status-banner.is-info { background: #EFF6FF; color: var(--info-text); }
+.status-banner.is-danger { background: #FEF2F2; color: var(--danger-text); }
+.qr-image { display: block; margin: .25rem auto 0; border: 1px solid var(--border); border-radius: var(--radius-sm); image-rendering: pixelated; }
+.mode { display: inline-flex; align-items: center; gap: .35rem; white-space: nowrap; }
+.stat__icon--sm { width: 34px; height: 34px; border-radius: 10px; }
+.stat__icon--sm .icon { width: 17px; height: 17px; }
+.date-chip { display: inline-grid; place-items: center; width: 46px; padding: .25rem 0; border-radius: var(--radius-sm); background: var(--primary-soft); color: var(--primary-strong); font-size: .68rem; line-height: 1.15; text-transform: uppercase; flex-shrink: 0; }
+.date-chip b { font-size: 1.05rem; }
+
+/* Espace parent (mobile d'abord) */
+.resume { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1rem; padding: 1.1rem 1.25rem; }
+.resume__item span { display: block; font-size: .8rem; color: var(--text-muted); }
+.resume__item strong { font-size: 1.3rem; letter-spacing: -.02em; }
+.resume__progress { grid-column: 1 / -1; display: flex; align-items: center; gap: .75rem; }
+.resume__progress .progress { flex: 1; }
+.enfant__head { display: flex; align-items: center; gap: .8rem; margin-bottom: .8rem; }
+.enfant__head h2 { margin: 0; font-size: 1.1rem; }
+.enfant__reste { margin-left: auto; font-size: .88rem; color: var(--text-muted); text-align: right; }
+.enfant__reste strong { color: var(--danger-text); }
+.frais-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(290px, 1fr)); gap: 1rem; }
+.frais-card { display: grid; gap: .7rem; padding: 1.1rem 1.15rem; border-top: 3px solid var(--warning); }
+.frais-card.is-paye { border-top-color: var(--success); }
+.frais-card.is-echu { border-top-color: var(--danger); }
+.frais-card__head { display: flex; align-items: flex-start; justify-content: space-between; gap: .75rem; }
+.frais-card__head h3 { margin: 0; font-size: 1rem; }
+.frais-card__echeance { display: flex; align-items: center; gap: .4rem; margin: 0; font-size: .85rem; color: var(--text-muted); }
+.frais-card__montants { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: .5rem; }
+.frais-card__montants span { display: block; font-size: .72rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: .04em; }
+.frais-card__montants strong { font-size: .95rem; }
+.frais-card__montants--lg { margin: 1rem 0 .8rem; }
+.frais-card__montants--lg strong { font-size: 1.2rem; }
+.frais-card__actions { display: flex; flex-wrap: wrap; gap: .5rem; }
+.frais-card__actions .btn { flex: 1; }
+
+/* Vérification publique d'un reçu */
+.verif-card { max-width: 480px; }
+.verif-result { display: flex; gap: 1rem; padding: 1.4rem 1.5rem; border-radius: var(--radius-lg) var(--radius-lg) 0 0; }
+.verif-result h2 { margin: 0 0 .2rem; font-size: 1.25rem; }
+.verif-result p { margin: 0; font-size: .9rem; }
+.verif-result__icon { display: inline-flex; align-items: center; justify-content: center; width: 52px; height: 52px; border-radius: 50%; flex-shrink: 0; }
+.verif-result__icon .icon { width: 28px; height: 28px; }
+.verif-result.is-valid { background: #F0FDF4; color: var(--success-text); }
+.verif-result.is-valid .verif-result__icon { background: var(--success-soft); color: var(--success); }
+.verif-result.is-invalid { background: #FEF2F2; color: var(--danger-text); border-radius: var(--radius-lg); }
+.verif-result.is-invalid .verif-result__icon { background: var(--danger-soft); color: var(--danger); }
+.verif-details { padding: 1.25rem 1.5rem 1.5rem; }
+
 /* --- Pages hors connexion (connexion, erreurs) ------------------------------- */
 .auth-page {
   min-height: 100vh;
@@ -652,7 +755,7 @@ a.cell-user:hover, a.list__main:hover { text-decoration: none; }
 /* --- Responsive --------------------------------------------------------------- */
 @media (max-width: 1100px) {
   .grid-4 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-  .grid-main-side { grid-template-columns: minmax(0, 1fr); }
+  .grid-main-side, .grid-side-main { grid-template-columns: minmax(0, 1fr); }
 }
 
 @media (max-width: 900px) {
@@ -684,6 +787,14 @@ a.cell-user:hover, a.list__main:hover { text-decoration: none; }
   .toasts { top: auto; bottom: 1rem; right: 1rem; left: 1rem; width: auto; }
   .breadcrumb { display: none; }
   .hide-mobile { display: none !important; }
+  .resume { grid-template-columns: 1fr 1fr; }
+  .resume__item:nth-child(3) { grid-column: 1 / -1; }
+  .frais-grid { grid-template-columns: minmax(0, 1fr); }
+  .enfant__head { flex-wrap: wrap; }
+  .toolbar__field { flex: 1 1 140px; }
+  .toolbar__field input { flex: 1; }
+  .profile__totaux { width: 100%; justify-content: space-between; gap: .75rem; }
+  .status-banner .num { font-size: 1.25rem; }
   .hide-desktop { display: block !important; }
   .bars li { grid-template-columns: minmax(90px, 120px) 1fr 36px; gap: .6rem; }
   .profile { padding: 1.1rem; }
