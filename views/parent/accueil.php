@@ -14,7 +14,7 @@ $routeur = Router::instance();
         <h2>Bonjour, <?= e($utilisateur['nom']) ?></h2>
         <p>Consultez les frais scolaires de vos enfants et payez en toute sécurité.</p>
     </div>
-    <img class="welcome__art" src="<?= asset('img/logo.svg') ?>" alt="">
+    <img class="welcome__art" src="<?= asset('img/logo-institut-blanc.png') ?>" alt="">
 </section>
 
 <?php if ($enfants === []): ?>

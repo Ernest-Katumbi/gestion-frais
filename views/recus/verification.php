@@ -8,7 +8,7 @@
 ?>
 <div class="auth-card verif-card">
     <div class="auth-brand">
-        <img src="<?= asset('img/logo.svg') ?>" alt="" width="56" height="56">
+        <img src="<?= asset('img/logo-institut.png') ?>" alt="Logo de l'<?= e(APP_NOM) ?>" width="96" height="96">
         <h1><?= e(APP_NOM) ?></h1>
         <p>Vérification des reçus de paiement</p>
     </div>

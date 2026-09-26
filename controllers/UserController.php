@@ -19,6 +19,7 @@ final class UserController extends Controller
             'classes'        => Classe::toutes(),
             'derniersEleves' => Eleve::derniers(6),
             'derniers'       => User::derniers(4),
+            'kpi'            => RapportController::indicateurs(date('Y-m-01'), date('Y-m-d')),
         ]);
     }
 

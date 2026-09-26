@@ -2,8 +2,8 @@
 /**
  * Tableau de bord du comptable.
  * @var array $utilisateur
- * @var array $indicateurs du, paye, reste, echus, reste_echu
- * @var float $taux        taux de recouvrement (%)
+ * @var array $kpi         indicateurs du mois en cours (RapportController::indicateurs)
+ * @var array $serie       encaissements des 14 derniers jours
  * @var array $duJour      n, somme
  * @var array $recents
  * @var array $echeances   échéances des 14 prochains jours
@@ -15,43 +15,61 @@ $iconesMode = ['especes' => 'banknote', 'mobile_money' => 'smartphone', 'carte' 
         <h2>Bonjour, <?= e($utilisateur['nom']) ?></h2>
         <p>Aujourd'hui : <?= (int) $duJour['n'] ?> encaissement<?= $duJour['n'] > 1 ? 's' : '' ?> pour <?= e(formaterMontant($duJour['somme'])) ?>.</p>
     </div>
-    <img class="welcome__art" src="<?= asset('img/logo.svg') ?>" alt="">
+    <img class="welcome__art" src="<?= asset('img/logo-institut-blanc.png') ?>" alt="">
 </section>
 
 <div class="grid grid-4 mb-3">
-    <a class="card stat stat-link" href="<?= url('/paiements', ['statut' => 'reussi']) ?>">
+    <a class="card stat stat-link" href="<?= url('/rapports') ?>">
         <span class="stat__icon is-success"><?= icone('wallet') ?></span>
         <div>
-            <p class="stat__label">Total encaissé</p>
-            <p class="stat__value"><?= e(formaterMontant($indicateurs['paye'])) ?></p>
-            <p class="stat__hint">sur <?= e(formaterMontant($indicateurs['du'])) ?> facturés</p>
+            <p class="stat__label">Encaissé ce mois-ci</p>
+            <p class="stat__value"><?= e(formaterMontant($kpi['somme'])) ?></p>
+            <p class="stat__hint"><?= $kpi['nb'] ?> paiement<?= $kpi['nb'] > 1 ? 's' : '' ?> réussi<?= $kpi['nb'] > 1 ? 's' : '' ?></p>
         </div>
     </a>
     <a class="card stat stat-link" href="<?= url('/impayes') ?>">
         <span class="stat__icon is-danger"><?= icone('alert-circle') ?></span>
         <div>
-            <p class="stat__label">Reste à recouvrer</p>
-            <p class="stat__value"><?= e(formaterMontant($indicateurs['reste'])) ?></p>
-            <p class="stat__hint">tous frais non soldés</p>
+            <p class="stat__label">Total impayé</p>
+            <p class="stat__value"><?= e(formaterMontant($kpi['reste'])) ?></p>
+            <p class="stat__hint">reste à recouvrer à ce jour</p>
         </div>
     </a>
     <div class="card stat">
         <span class="stat__icon"><?= icone('percent') ?></span>
         <div>
             <p class="stat__label">Taux de recouvrement</p>
-            <p class="stat__value"><?= e(number_format($taux, 1, ',', ' ')) ?> %</p>
-            <span class="progress mt-1"><span class="progress__bar" style="width: <?= min(100, round($taux)) ?>%"></span></span>
+            <p class="stat__value"><?= e(number_format($kpi['taux'], 1, ',', ' ')) ?> %</p>
+            <span class="progress mt-1"><span class="progress__bar is-primaire" style="width: <?= min(100, round($kpi['taux'])) ?>%"></span></span>
         </div>
     </div>
-    <a class="card stat stat-link" href="<?= url('/impayes', ['echus' => 1]) ?>">
-        <span class="stat__icon is-warning"><?= icone('clock') ?></span>
+    <div class="card stat">
+        <span class="stat__icon is-info"><?= icone('smartphone') ?></span>
         <div>
-            <p class="stat__label">Frais échus non soldés</p>
-            <p class="stat__value"><?= (int) $indicateurs['echus'] ?></p>
-            <p class="stat__hint"><?= e(formaterMontant($indicateurs['reste_echu'])) ?> en retard</p>
+            <p class="stat__label">Part des paiements en ligne</p>
+            <p class="stat__value"><?= e(number_format($kpi['part_ligne'], 1, ',', ' ')) ?> %</p>
+            <p class="stat__hint">du montant encaissé ce mois-ci</p>
         </div>
-    </a>
+    </div>
 </div>
+
+<?php if ($kpi['echus'] > 0): ?>
+    <a class="alert alert-warning mb-3 alert-lien" href="<?= url('/impayes', ['echus' => 1]) ?>">
+        <?= icone('clock') ?>
+        <div><strong><?= $kpi['echus'] ?> frais échu<?= $kpi['echus'] > 1 ? 's' : '' ?> non soldé<?= $kpi['echus'] > 1 ? 's' : '' ?></strong>
+            <?= e(formaterMontant($kpi['reste_echu'])) ?> en retard de paiement. Voir la liste des impayés échus.</div>
+    </a>
+<?php endif; ?>
+
+<section class="card mb-3">
+    <div class="card__header">
+        <h3>Encaissements des 14 derniers jours</h3>
+        <a href="<?= url('/rapports') ?>" class="btn btn-ghost btn-sm">Rapports détaillés <?= icone('arrow-right') ?></a>
+    </div>
+    <div class="card__body">
+        <?= View::partiel('graphique_barres', ['points' => $serie, 'serie' => 'Encaissements', 'tableau' => false]) ?>
+    </div>
+</section>
 
 <div class="grid grid-main-side">
     <section class="card">

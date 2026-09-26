@@ -53,7 +53,7 @@ $estActif = static function (string $chemin) use ($courant): bool {
 ?>
 <aside class="sidebar" id="sidebar" aria-label="Navigation principale">
     <a class="sidebar__brand" href="<?= url(accueilDuRole($moi['role'])) ?>">
-        <img src="<?= asset('img/logo.svg') ?>" alt="" width="38" height="38">
+        <img src="<?= asset('img/logo-institut.png') ?>" alt="Logo de l'<?= e(APP_NOM) ?>" width="44" height="44">
         <span>
             <strong><?= e(APP_NOM) ?></strong>
             <span>Gestion des frais scolaires</span>

@@ -17,7 +17,7 @@ final class Session
         if (session_status() === PHP_SESSION_ACTIVE) {
             return;
         }
-        $https = !empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off';
+        $https = requeteHttps();
 
         ini_set('session.use_strict_mode', '1');   // refuse les identifiants de session inventés
         ini_set('session.use_only_cookies', '1');

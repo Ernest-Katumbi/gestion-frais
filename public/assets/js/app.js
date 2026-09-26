@@ -428,6 +428,20 @@
     appliquer();
   });
 
+  // --- Rapports : champs de la période choisie (jour, mois ou intervalle) -----
+  document.querySelectorAll('[data-periode]').forEach(function (form) {
+    function appliquer() {
+      var type = form.querySelector('input[name="type"]:checked');
+      form.querySelectorAll('[data-si-periode]').forEach(function (champ) {
+        var visible = type && champ.dataset.siPeriode === type.value;
+        champ.hidden = !visible;
+        champ.querySelectorAll('input').forEach(function (i) { i.disabled = !visible; });
+      });
+    }
+    form.querySelectorAll('input[name="type"]').forEach(function (r) { r.addEventListener('change', appliquer); });
+    appliquer();
+  });
+
   // --- Suivi d'un paiement en ligne : interrogation du statut toutes les 3 s ---
   document.querySelectorAll('[data-suivi-url]').forEach(function (bloc) {
     var info = bloc.querySelector('[data-suivi-info]');

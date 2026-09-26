@@ -195,7 +195,7 @@ final class AuthController extends Controller
 
     private static function adresseIp(): string
     {
-        return (string) ($_SERVER['REMOTE_ADDR'] ?? 'cli');
+        return adresseIpClient();
     }
 
     private static function duree(int $secondes): string

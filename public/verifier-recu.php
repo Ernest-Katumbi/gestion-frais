@@ -36,7 +36,7 @@ try {
 
 if ($paiement === null) {
     http_response_code(404);
-    journaliser('app', 'Vérification de reçu refusée : n=' . mb_substr($numero, 0, 40) . ' depuis ' . ($_SERVER['REMOTE_ADDR'] ?? '?'));
+    journaliser('app', 'Vérification de reçu refusée : n=' . mb_substr($numero, 0, 40) . ' depuis ' . adresseIpClient());
 }
 
 echo View::rendre('recus/verification', [

@@ -53,6 +53,10 @@ $router->get('/frais',           [FraisController::class, 'index']);
 $router->post('/frais/affecter', [FraisController::class, 'affecter']);
 $router->post('/frais/annuler',  [FraisController::class, 'annuler']);
 $router->get('/impayes',         [FraisController::class, 'impayes']);
+$router->get('/impayes/pdf',     [FraisController::class, 'impayesPdf']);
+
+$router->get('/rapports',     [RapportController::class, 'index']);
+$router->get('/rapports/pdf', [RapportController::class, 'pdf']);
 
 $router->get('/paiements/guichet',  [PaiementController::class, 'guichet']);
 $router->post('/paiements/guichet', [PaiementController::class, 'encaisser']);
@@ -64,6 +68,7 @@ $router->get('/recus/{id}', [PaiementController::class, 'recu']);
 
 // Parent
 $router->get('/parent',                      [ParentController::class, 'accueil']);
+$router->get('/parent/historique',           [ParentController::class, 'historique']);
 $router->get('/parent/frais/{id}',           [ParentController::class, 'frais']);
 $router->get('/parent/frais/{id}/payer',     [ParentController::class, 'payer']);
 $router->post('/parent/frais/{id}/payer',    [ParentController::class, 'initierPaiement']);

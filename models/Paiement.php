@@ -169,6 +169,96 @@ final class Paiement
         return $requete->fetch();
     }
 
+    // --- Rapports (seuls les paiements réussis comptent) -------------------------------
+
+    /**
+     * Totaux d'une période : montant et nombre de paiements réussis, dont en ligne.
+     * @return array{somme:string, nb:int, somme_en_ligne:string, nb_en_ligne:int, echoues:int}
+     */
+    public static function totauxPeriode(string $du, string $au): array
+    {
+        $requete = Database::get()->prepare(
+            "SELECT COALESCE(SUM(CASE WHEN statut = 'reussi' THEN montant END), 0) AS somme,
+                    SUM(statut = 'reussi') AS nb,
+                    COALESCE(SUM(CASE WHEN statut = 'reussi' AND mode <> 'especes' THEN montant END), 0) AS somme_en_ligne,
+                    SUM(statut = 'reussi' AND mode <> 'especes') AS nb_en_ligne,
+                    SUM(statut = 'echoue') AS echoues
+             FROM paiement
+             WHERE date_paiement BETWEEN ? AND ?"
+        );
+        $requete->execute([$du . ' 00:00:00', $au . ' 23:59:59']);
+        $t = $requete->fetch();
+        return [
+            'somme' => $t['somme'], 'nb' => (int) $t['nb'],
+            'somme_en_ligne' => $t['somme_en_ligne'], 'nb_en_ligne' => (int) $t['nb_en_ligne'],
+            'echoues' => (int) $t['echoues'],
+        ];
+    }
+
+    /**
+     * Ventilation des encaissements d'une période par catégorie, classe ou mode.
+     * @return list<array{libelle:string, nb:int, somme:string}>
+     */
+    public static function ventilation(string $du, string $au, string $dimension): array
+    {
+        $colonne = match ($dimension) {
+            'categorie' => 'c.libelle',
+            'classe'    => 'cl.libelle',
+            'mode'      => 'pa.mode',
+            default     => throw new InvalidArgumentException("Dimension inconnue : $dimension"),
+        };
+        $requete = Database::get()->prepare(
+            "SELECT $colonne AS libelle, COUNT(*) AS nb, SUM(pa.montant) AS somme
+             FROM paiement pa
+             JOIN frais f ON f.id_frais = pa.id_frais
+             JOIN categorie_frais c ON c.id_categorie = f.id_categorie
+             JOIN eleve e ON e.id_eleve = f.id_eleve
+             JOIN classe cl ON cl.id_classe = e.id_classe
+             WHERE pa.statut = 'reussi' AND pa.date_paiement BETWEEN ? AND ?
+             GROUP BY $colonne
+             ORDER BY somme DESC"
+        );
+        $requete->execute([$du . ' 00:00:00', $au . ' 23:59:59']);
+        $lignes = $requete->fetchAll();
+        if ($dimension === 'mode') {
+            foreach ($lignes as &$ligne) {
+                $ligne['libelle'] = self::MODES[$ligne['libelle']];
+            }
+        }
+        return $lignes;
+    }
+
+    /**
+     * Série chronologique des encaissements, par jour ou par mois, sans trou :
+     * les périodes sans paiement valent 0.
+     * @return list<array{cle:string, somme:float, nb:int}>
+     */
+    public static function serie(string $du, string $au, string $pas): array
+    {
+        $format = $pas === 'mois' ? '%Y-%m' : '%Y-%m-%d';
+        $requete = Database::get()->prepare(
+            "SELECT DATE_FORMAT(date_paiement, '$format') AS cle, SUM(montant) AS somme, COUNT(*) AS nb
+             FROM paiement
+             WHERE statut = 'reussi' AND date_paiement BETWEEN ? AND ?
+             GROUP BY cle"
+        );
+        $requete->execute([$du . ' 00:00:00', $au . ' 23:59:59']);
+        $valeurs = [];
+        foreach ($requete->fetchAll() as $ligne) {
+            $valeurs[$ligne['cle']] = $ligne;
+        }
+
+        $serie = [];
+        $curseur = new DateTimeImmutable($pas === 'mois' ? substr($du, 0, 7) . '-01' : $du);
+        $fin = new DateTimeImmutable($au);
+        while ($curseur <= $fin) {
+            $cle = $curseur->format($pas === 'mois' ? 'Y-m' : 'Y-m-d');
+            $serie[] = ['cle' => $cle, 'somme' => (float) ($valeurs[$cle]['somme'] ?? 0), 'nb' => (int) ($valeurs[$cle]['nb'] ?? 0)];
+            $curseur = $curseur->modify($pas === 'mois' ? '+1 month' : '+1 day');
+        }
+        return $serie;
+    }
+
     /** Paiement en ligne encore en attente pour un frais (un seul à la fois), ou null. */
     public static function enAttentePourFrais(int $idFrais): ?array
     {

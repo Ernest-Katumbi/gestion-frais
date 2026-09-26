@@ -16,7 +16,7 @@ $effectifMax = max([1, ...array_map('intval', array_column($classes, 'nb_eleves'
         <h2>Bonjour, <?= e($moi['nom']) ?></h2>
         <p>Voici la situation des inscriptions et des comptes de l'<?= e(APP_NOM) ?>.</p>
     </div>
-    <img class="welcome__art" src="<?= asset('img/logo.svg') ?>" alt="">
+    <img class="welcome__art" src="<?= asset('img/logo-institut-blanc.png') ?>" alt="">
 </section>
 
 <div class="grid grid-4 mb-3">
@@ -53,6 +53,23 @@ $effectifMax = max([1, ...array_map('intval', array_column($classes, 'nb_eleves'
         </div>
     </a>
 </div>
+
+<section class="card mb-3">
+    <div class="card__header">
+        <h3>Situation financière</h3>
+        <span class="text-small text-muted">encaissements du mois en cours · soldes à ce jour</span>
+    </div>
+    <div class="finances">
+        <div><span>Encaissé ce mois-ci</span><strong class="num"><?= e(formaterMontant($kpi['somme'])) ?></strong></div>
+        <div><span>Total impayé</span><strong class="num text-danger"><?= e(formaterMontant($kpi['reste'])) ?></strong></div>
+        <div>
+            <span>Taux de recouvrement</span>
+            <strong class="num"><?= e(number_format($kpi['taux'], 1, ',', ' ')) ?> %</strong>
+            <span class="progress"><span class="progress__bar is-primaire" style="width: <?= min(100, round($kpi['taux'])) ?>%"></span></span>
+        </div>
+        <div><span>Part des paiements en ligne</span><strong class="num"><?= e(number_format($kpi['part_ligne'], 1, ',', ' ')) ?> %</strong></div>
+    </div>
+</section>
 
 <div class="grid grid-main-side mb-3">
     <section class="card">

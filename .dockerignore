@@ -1,0 +1,12 @@
+.git
+.gitignore
+.dockerignore
+.claude
+vendor
+config/config.php
+recus/*.pdf
+storage/logs/*.log
+storage/cache/*
+storage/simulateur/*
+.phpunit.cache
+public/assets/img/logo-institut-original.jpg

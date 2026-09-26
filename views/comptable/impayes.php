@@ -17,6 +17,7 @@ $aujourdhui = date('Y-m-d');
         <p>Frais non soldés, du plus ancien au plus récent.</p>
     </div>
     <div class="page-header__actions">
+        <a href="<?= url('/impayes/pdf', array_filter(['classe' => $filtres['classe'] ?: null, 'categorie' => $filtres['categorie'] ?: null, 'echeance_max' => $filtres['echeance_max'] ?: null, 'echus' => $filtres['echus'] ? 1 : null])) ?>" target="_blank" rel="noopener" class="btn btn-secondary"><?= icone('printer') ?> Exporter en PDF</a>
         <a href="<?= url('/paiements/guichet') ?>" class="btn btn-primary"><?= icone('banknote') ?> Encaisser un paiement</a>
     </div>
 </div>

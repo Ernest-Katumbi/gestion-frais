@@ -1,9 +1,10 @@
 <?php /** Page de connexion. */ ?>
 <div class="auth-card">
     <div class="auth-brand">
-        <img src="<?= asset('img/logo.svg') ?>" alt="" width="64" height="64">
+        <img src="<?= asset('img/logo-institut.png') ?>" alt="Logo de l'<?= e(APP_NOM) ?>" width="116" height="116">
         <h1><?= e(APP_NOM) ?></h1>
-        <p>Gestion des frais scolaires</p>
+        <p><?= e(APP_MENTION) ?> · Kolwezi</p>
+        <p class="auth-brand__app">Gestion des frais scolaires</p>
     </div>
 
     <div class="card">

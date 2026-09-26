@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Tests automatisés : vendor/bin/phpunit
+  Ils s'exécutent sur une base dédiée (gestion_frais_test), recréée à chaque test,
+  et écrivent reçus et journaux dans storage/cache/tests : les données de démonstration
+  ne sont jamais modifiées.
+-->
+<phpunit xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:noNamespaceSchemaLocation="vendor/phpunit/phpunit/phpunit.xsd"
+         bootstrap="tests/bootstrap.php"
+         colors="true"
+         cacheDirectory="storage/cache/phpunit"
+         testdox="true">
+    <testsuites>
+        <testsuite name="Gestion des frais">
+            <file>tests/FraisTest.php</file>
+            <file>tests/PaiementTest.php</file>
+            <file>tests/PasserelleTest.php</file>
+        </testsuite>
+    </testsuites>
+    <php>
+        <env name="DB_NAME" value="gestion_frais_test" force="true"/>
+        <env name="RECUS_DIR" value="storage/cache/tests/recus" force="true"/>
+        <env name="LOGS_DIR" value="storage/cache/tests/logs" force="true"/>
+        <env name="APP_ENV" value="development" force="true"/>
+    </php>
+</phpunit>

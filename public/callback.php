@@ -30,7 +30,7 @@ $corps = (string) file_get_contents('php://input');
 $signature = (string) ($_SERVER['HTTP_X_SIGNATURE'] ?? '');
 
 if (!passerelle()->verifierSignature($corps, $signature)) {
-    journaliser('app', 'Callback refusé : signature invalide depuis ' . ($_SERVER['REMOTE_ADDR'] ?? '?'));
+    journaliser('app', 'Callback refusé : signature invalide depuis ' . adresseIpClient());
     repondre(401, 'Signature invalide.');
 }
 

@@ -130,6 +130,27 @@ function asset(string $chemin): string
     return url('/assets/' . ltrim($chemin, '/')) . '?v=' . $version;
 }
 
+/** La requête est-elle en HTTPS (directement, ou via le proxy de l'hébergeur si TRUST_PROXY) ? */
+function requeteHttps(): bool
+{
+    if (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') {
+        return true;
+    }
+    return TRUST_PROXY && strtolower((string) ($_SERVER['HTTP_X_FORWARDED_PROTO'] ?? '')) === 'https';
+}
+
+/** Adresse IP du client (première adresse de X-Forwarded-For derrière un proxy de confiance). */
+function adresseIpClient(): string
+{
+    if (TRUST_PROXY && !empty($_SERVER['HTTP_X_FORWARDED_FOR'])) {
+        $ip = trim(explode(',', (string) $_SERVER['HTTP_X_FORWARDED_FOR'])[0]);
+        if (filter_var($ip, FILTER_VALIDATE_IP)) {
+            return $ip;
+        }
+    }
+    return (string) ($_SERVER['REMOTE_ADDR'] ?? 'cli');
+}
+
 /** Chemin de la requête courante, ex. « /utilisateurs ». */
 function cheminCourant(): string
 {
@@ -262,11 +283,14 @@ function passerelle(): PasserellePaiement
 
 // --- Journalisation et erreurs ---------------------------------------------------
 
-/** Écrit une ligne horodatée dans storage/logs/{canal}.log (app, mail…). */
+/** Écrit une ligne horodatée dans LOGS_DIR/{canal}.log (storage/logs/app.log, mail.log…). */
 function journaliser(string $canal, string $message): void
 {
     $ligne = '[' . date('Y-m-d H:i:s') . '] ' . $message . PHP_EOL;
-    @file_put_contents(RACINE . '/storage/logs/' . basename($canal) . '.log', $ligne, FILE_APPEND | LOCK_EX);
+    if (!is_dir(LOGS_DIR)) {
+        @mkdir(LOGS_DIR, 0775, true);
+    }
+    @file_put_contents(LOGS_DIR . '/' . basename($canal) . '.log', $ligne, FILE_APPEND | LOCK_EX);
 }
 
 /** Affiche la page d'erreur HTTP correspondante (ou du JSON pour les appels JavaScript). */

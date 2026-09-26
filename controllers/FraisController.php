@@ -199,12 +199,7 @@ final class FraisController extends Controller
     public function impayes(): void
     {
         exigerRole('comptable');
-        $filtres = [
-            'classe'       => (int) $this->query('classe', '0'),
-            'categorie'    => (int) $this->query('categorie', '0'),
-            'echeance_max' => dateValide($this->query('echeance_max')) ? $this->query('echeance_max') : '',
-            'echus'        => $this->query('echus') === '1',
-        ];
+        $filtres = $this->filtresImpayes();
         $page = $this->page();
         $resultat = Frais::impayes($filtres, $page, 20);
 
@@ -220,7 +215,46 @@ final class FraisController extends Controller
         ]);
     }
 
+    /** Export PDF de la liste des impayés, avec les mêmes filtres que l'écran. */
+    public function impayesPdf(): void
+    {
+        $comptable = exigerRole('comptable');
+        $filtres = $this->filtresImpayes();
+        $lignes = Frais::tousImpayes($filtres);
+        $criteres = array_filter([
+            $filtres['classe'] ? 'classe ' . (Classe::trouver($filtres['classe'])['libelle'] ?? '?') : null,
+            $filtres['categorie'] ? (CategorieFrais::trouver($filtres['categorie'])['libelle'] ?? '?') : null,
+            $filtres['echeance_max'] !== '' ? 'échéance jusqu\'au ' . formaterDate($filtres['echeance_max']) : null,
+            $filtres['echus'] ? 'échéance dépassée' : null,
+        ]);
+        $html = View::rendre('pdf/impayes', [
+            'lignes'    => $lignes,
+            'totaux'    => Frais::totaux($lignes),
+            'criteres'  => $criteres,
+            'comptable' => $comptable,
+            'logo'      => 'data:image/png;base64,' . base64_encode((string) file_get_contents(RACINE . '/public/assets/img/logo-institut.png')),
+        ], null);
+        $pdf = GenerateurRecu::rendrePdf($html, 'A4', 'landscape');
+        header('Content-Type: application/pdf');
+        header('Content-Disposition: inline; filename="impayes-' . date('Y-m-d') . '.pdf"');
+        header('Content-Length: ' . strlen($pdf));
+        header('Cache-Control: private, no-store');
+        echo $pdf;
+        exit;
+    }
+
     // --- Outils internes -------------------------------------------------------------
+
+    /** Filtres de la liste des impayés (classe, catégorie, échéance maximale, échus). */
+    private function filtresImpayes(): array
+    {
+        return [
+            'classe'       => (int) $this->query('classe', '0'),
+            'categorie'    => (int) $this->query('categorie', '0'),
+            'echeance_max' => dateValide($this->query('echeance_max')) ? $this->query('echeance_max') : '',
+            'echus'        => $this->query('echus') === '1',
+        ];
+    }
 
     private function donneesCategorie(): array
     {

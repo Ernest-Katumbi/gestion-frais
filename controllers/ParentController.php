@@ -31,6 +31,33 @@ final class ParentController extends Controller
         ]);
     }
 
+    /** Historique de tous les paiements (réussis, en attente, échoués) des enfants du parent. */
+    public function historique(): void
+    {
+        $parent = exigerRole('parent');
+        $enfants = Eleve::parParent((int) $parent['id_utilisateur']);
+        $idEnfant = (int) $this->query('enfant', '0');
+        // Filtre limité aux enfants du parent connecté.
+        if (!in_array($idEnfant, array_map('intval', array_column($enfants, 'id_eleve')), true)) {
+            $idEnfant = 0;
+        }
+        $paiements = array_values(array_filter(
+            Paiement::parParent((int) $parent['id_utilisateur'], 500),
+            static fn(array $p): bool => $idEnfant === 0 || (int) $p['id_eleve'] === $idEnfant
+        ));
+        $reussis = array_filter($paiements, static fn(array $p): bool => $p['statut'] === 'reussi');
+
+        $this->vue('parent/historique', [
+            'titre'     => 'Historique des paiements',
+            'fil'       => [['Historique des paiements', null]],
+            'paiements' => $paiements,
+            'enfants'   => $enfants,
+            'idEnfant'  => $idEnfant,
+            'total'     => array_sum(array_map(static fn(array $p): float => (float) $p['montant'], $reussis)),
+            'nbReussis' => count($reussis),
+        ]);
+    }
+
     /** Détail d'un frais : situation, historique des paiements et reçus. */
     public function frais(int $id): void
     {

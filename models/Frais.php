@@ -278,6 +278,19 @@ final class Frais
         return $requete->fetchAll();
     }
 
+    /** Reste à recouvrer par classe (rapport). */
+    public static function impayesParClasse(): array
+    {
+        $requete = Database::get()->prepare(
+            "SELECT cl.libelle, COUNT(*) AS nb, SUM(f.montant - f.montant_paye) AS reste, COUNT(DISTINCT f.id_eleve) AS eleves
+             FROM frais f JOIN eleve e ON e.id_eleve = f.id_eleve JOIN classe cl ON cl.id_classe = e.id_classe
+             WHERE f.statut <> 'paye'
+             GROUP BY cl.id_classe ORDER BY CAST(cl.niveau AS UNSIGNED), cl.libelle"
+        );
+        $requete->execute();
+        return $requete->fetchAll();
+    }
+
     /** Frais non soldés dont l'échéance tombe dans les N prochains jours. */
     public static function echeancesProches(int $jours = 7): array
     {

@@ -21,23 +21,23 @@ $reste = (float) $p['frais_reste'];
     table { border-collapse: collapse; width: 100%; }
     td { vertical-align: top; }
     .entete td { vertical-align: middle; }
-    .logo { width: 36px; height: 36px; }
-    .institut { font-size: 12pt; font-weight: bold; color: #2F4222; }
+    .logo { width: 54px; height: 54px; }
+    .institut { font-size: 12pt; font-weight: bold; color: #062B6E; }
     .sous-titre { color: #64748B; font-size: 7.2pt; }
     .titre-recu { text-align: right; }
     .titre-recu .libelle { font-size: 6.8pt; letter-spacing: 1.2px; color: #64748B; text-transform: uppercase; }
     .titre-recu .numero { font-size: 10.5pt; font-weight: bold; }
     .titre-recu .date { font-size: 7pt; color: #64748B; }
-    .filet { height: 2.5px; background: #4E6B3A; margin: 6px 0 9px; }
-    .montant { background: #EEF3E8; border: 1px solid #D5E2C8; }
+    .filet { height: 2.5px; background: #0541B6; margin: 6px 0 9px; }
+    .montant { background: #EAF0FC; border: 1px solid #CCDAF5; }
     .montant td { padding: 7px 10px; vertical-align: middle; }
-    .montant .etiquette { color: #2F4222; font-size: 7.6pt; }
-    .montant .valeur { font-size: 16pt; font-weight: bold; color: #2F4222; text-align: right; }
+    .montant .etiquette { color: #062B6E; font-size: 7.6pt; }
+    .montant .valeur { font-size: 16pt; font-weight: bold; color: #062B6E; text-align: right; }
     .tampon { display: inline-block; margin-top: 2px; padding: 1px 6px; border: 1px solid #16A34A; color: #166534; font-size: 6.8pt; font-weight: bold; letter-spacing: .8px; }
     .colonnes td.col { width: 50%; }
     .colonnes td.col-g { padding-right: 8px; }
     .colonnes td.col-d { padding-left: 8px; }
-    h2 { margin: 10px 0 3px; font-size: 7pt; letter-spacing: 1px; text-transform: uppercase; color: #4E6B3A; }
+    h2 { margin: 10px 0 3px; font-size: 7pt; letter-spacing: 1px; text-transform: uppercase; color: #0541B6; }
     .details td { padding: 2.5px 0; border-bottom: 0.5px solid #E2E8F0; }
     .details td.cle { width: 40%; color: #64748B; }
     .details td.val { font-weight: bold; }
@@ -60,10 +60,10 @@ $reste = (float) $p['frais_reste'];
 
 <table class="entete">
     <tr>
-        <td style="width: 44px"><img class="logo" src="<?= $logo ?>" alt=""></td>
+        <td style="width: 62px"><img class="logo" src="<?= $logo ?>" alt=""></td>
         <td>
             <div class="institut"><?= e(APP_NOM) ?></div>
-            <div class="sous-titre">École secondaire · <?= e(APP_VILLE) ?></div>
+            <div class="sous-titre"><?= e(APP_MENTION) ?> · <?= e(APP_VILLE) ?></div>
         </td>
         <td class="titre-recu">
             <div class="libelle">Reçu de paiement</div>

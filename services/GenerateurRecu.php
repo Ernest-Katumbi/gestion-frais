@@ -14,8 +14,17 @@ use Dompdf\Options;
  */
 final class GenerateurRecu
 {
-    /** Dossier des PDF, hors du webroot : les reçus ne sont servis qu'après contrôle d'accès. */
-    public const DOSSIER = RACINE . '/recus';
+    /**
+     * Si vrai, le fichier PDF n'est pas écrit à l'émission du reçu mais à sa première
+     * ouverture (cheminPdf) : utilisé par l'installation des données sur un hébergeur lent.
+     */
+    public static bool $differerPdf = false;
+
+    /** Dossier des PDF (RECUS_DIR), hors du webroot : les reçus ne sont servis qu'après contrôle d'accès. */
+    public static function dossier(): string
+    {
+        return rtrim(RECUS_DIR, '/\\');
+    }
 
     /**
      * Génère le reçu d'un paiement réussi (base + fichier PDF) et le renvoie.
@@ -37,14 +46,16 @@ final class GenerateurRecu
 
         $annee = (int) (new DateTimeImmutable($paiement['date_paiement']))->format('Y');
         $recu = Recu::creer($idPaiement, $annee, [self::class, 'urlVerification']);
-        self::ecrirePdf(Paiement::trouver($idPaiement));
+        if (!self::$differerPdf) {
+            self::ecrirePdf(Paiement::trouver($idPaiement));
+        }
         return $recu;
     }
 
     /** Chemin du PDF ; il est regénéré s'il a disparu du disque. */
     public static function cheminPdf(array $paiement): string
     {
-        $chemin = self::DOSSIER . '/' . basename((string) $paiement['fichier_pdf']);
+        $chemin = self::dossier() . '/' . basename((string) $paiement['fichier_pdf']);
         if (!is_file($chemin)) {
             self::ecrirePdf($paiement);
         }
@@ -91,7 +102,7 @@ final class GenerateurRecu
         $html = View::rendre('pdf/recu', [
             'p'    => $paiement,
             'qr'   => self::qrCode((string) $paiement['code_qr']),
-            'logo' => 'data:image/svg+xml;base64,' . base64_encode((string) file_get_contents(RACINE . '/public/assets/img/logo.svg')),
+            'logo' => 'data:image/png;base64,' . base64_encode((string) file_get_contents(RACINE . '/public/assets/img/logo-institut.png')),
         ], null);
         return self::rendrePdf($html, 'A5');
     }
@@ -114,10 +125,10 @@ final class GenerateurRecu
 
     private static function ecrirePdf(array $paiement): void
     {
-        if (!is_dir(self::DOSSIER)) {
-            mkdir(self::DOSSIER, 0775, true);
+        if (!is_dir(self::dossier())) {
+            mkdir(self::dossier(), 0775, true);
         }
-        $chemin = self::DOSSIER . '/' . basename((string) $paiement['fichier_pdf']);
+        $chemin = self::dossier() . '/' . basename((string) $paiement['fichier_pdf']);
         if (file_put_contents($chemin, self::pdf($paiement), LOCK_EX) === false) {
             throw new RuntimeException("Impossible d'écrire le reçu $chemin.");
         }

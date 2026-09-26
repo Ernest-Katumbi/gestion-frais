@@ -1,0 +1,45 @@
+# Blueprint Render — Gestion des frais scolaires (Institut des Oliviers)
+# Application PHP 8.2 + Apache dans un conteneur Docker (voir Dockerfile).
+# La base MySQL est externe (Render ne propose pas MySQL géré) : renseignez les
+# variables DB_* dans le tableau de bord Render lors de la création du Blueprint.
+services:
+  - type: web
+    name: gestion-frais-oliviers
+    runtime: docker
+    plan: free
+    region: frankfurt
+    dockerfilePath: ./Dockerfile
+    healthCheckPath: /connexion
+    autoDeploy: true
+    envVars:
+      # Application
+      - key: APP_ENV
+        value: production
+      - key: APP_DEMO            # comptes de démonstration affichés sur la page de connexion
+        value: "true"
+      - key: TRUST_PROXY         # HTTPS et IP client transmis par le proxy de Render
+        value: "true"
+      - key: PAYMENT_DRIVER      # passerelle simulée (sandbox)
+        value: simulateur
+      - key: MAIL_DRIVER         # e-mails journalisés, pas d'envoi réel
+        value: log
+      - key: AUTO_SEED           # installe les données de démo si la base est vide
+        value: "true"
+      # Secrets générés automatiquement par Render
+      - key: RECU_SECRET
+        generateValue: true
+      - key: PAYMENT_WEBHOOK_SECRET
+        generateValue: true
+      # Base MySQL externe (à saisir dans le tableau de bord)
+      - key: DB_HOST
+        sync: false
+      - key: DB_PORT
+        sync: false
+      - key: DB_NAME
+        sync: false
+      - key: DB_USER
+        sync: false
+      - key: DB_PASS
+        sync: false
+      - key: DB_SSL_CA_PEM       # contenu du certificat CA de l'hébergeur MySQL (ca.pem)
+        sync: false

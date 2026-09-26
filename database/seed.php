@@ -2,10 +2,12 @@
 /**
  * Installation de la base et données de démonstration.
  *
- *   php database/seed.php
+ *   php database/seed.php              réinstallation complète (efface toutes les données !)
+ *   php database/seed.php --si-vide    n'installe que si la base est vide (démarrage en ligne)
+ *   php database/seed.php --sans-pdf   reçus PDF générés plus tard, à leur première ouverture
  *
  * Crée la base si nécessaire, (ré)importe le schéma gestion_frais.sql puis insère
- * les données de démonstration. ATTENTION : toutes les données existantes sont effacées.
+ * les données de démonstration.
  */
 declare(strict_types=1);
 
@@ -15,15 +17,26 @@ if (PHP_SAPI !== 'cli') {
     exit('Script à lancer en ligne de commande.');
 }
 
+$options = array_slice($argv, 1);
+
 // 1. Création de la base (connexion sans base sélectionnée).
-$serveur = new PDO(sprintf('mysql:host=%s;port=%d;charset=utf8mb4', DB_HOST, DB_PORT), DB_USER, DB_PASS, [
-    PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
-]);
+$serveur = Database::serveur();
 $serveur->exec('CREATE DATABASE IF NOT EXISTS `' . str_replace('`', '', DB_NAME) . '` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci');
 echo "Base « " . DB_NAME . " » prête.\n";
 
-// 2. Import du schéma (instructions séparées par « ; » en fin de ligne).
 $db = Database::get();
+if (in_array('--si-vide', $options, true)) {
+    $requete = $db->prepare("SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = DATABASE() AND table_name = 'utilisateur'");
+    $requete->execute();
+    if ((int) $requete->fetchColumn() > 0) {
+        echo "La base contient déjà l'application : aucune modification.\n";
+        exit(0);
+    }
+}
+// Reçus PDF générés à la demande (première ouverture) : installation beaucoup plus rapide.
+GenerateurRecu::$differerPdf = in_array('--sans-pdf', $options, true);
+
+// 2. Import du schéma (instructions séparées par « ; » en fin de ligne).
 $sql = (string) file_get_contents(__DIR__ . '/gestion_frais.sql');
 $sql = preg_replace('/^\s*--.*$/m', '', $sql);
 foreach (preg_split('/;\s*$/m', $sql) as $instruction) {
@@ -41,7 +54,7 @@ $jour = static fn(int $decalage): string => $aujourdhui->modify(sprintf('%+d day
 $heure = static fn(int $decalage, int $h, int $m): string => $jour($decalage) . sprintf(' %02d:%02d:00', $h, $m);
 
 // Anciens reçus PDF supprimés (la base est recréée).
-foreach (glob(RACINE . '/recus/*.pdf') ?: [] as $pdf) {
+foreach (glob(GenerateurRecu::dossier() . '/*.pdf') ?: [] as $pdf) {
     unlink($pdf);
 }
 
@@ -171,7 +184,7 @@ echo count($categories) . " catégories, $nbFrais frais affectés.\n";
  * L'horloge de la session MariaDB est placée à la date historique (SET timestamp) :
  * CURRENT_TIMESTAMP donne alors la bonne date d'émission du reçu et d'envoi de la notification.
  */
-$encaisser = static function (int $idEleve, int $idCategorie, float $montant, string $date) use ($db, $ids): void {
+$encaisser = static function (int $idEleve, int $idCategorie, float $montant, string $date, string $mode = 'especes', bool $succes = true, string $raison = '') use ($db, $ids): void {
     $requete = $db->prepare('SELECT id_frais FROM frais WHERE id_eleve = ? AND id_categorie = ?');
     $requete->execute([$idEleve, $idCategorie]);
     $idFrais = (int) $requete->fetchColumn();
@@ -183,17 +196,22 @@ $encaisser = static function (int $idEleve, int $idCategorie, float $montant, st
     $idPaiement = Paiement::creer([
         'reference'     => Paiement::genererReference(new DateTimeImmutable($date)),
         'montant'       => $montant,
-        'mode'          => 'especes',
-        'statut'        => 'reussi',
+        'mode'          => $mode,
+        'statut'        => $succes ? 'reussi' : 'echoue',
         'date_paiement' => $date,
         'id_frais'      => $idFrais,
-        'id_comptable'  => $ids['comptable'],
+        'id_comptable'  => $mode === 'especes' ? $ids['comptable'] : null, // en ligne : pas de comptable
     ]);
-    Frais::enregistrerVersement($idFrais, $montant);
-    GenerateurRecu::generer($idPaiement);
-    Notificateur::paiementConfirme($idPaiement);
-    // Notifications historiques déjà lues par le parent.
-    $db->prepare('UPDATE notification SET lu = TRUE WHERE id_notification = LAST_INSERT_ID()')->execute();
+    if ($succes) {
+        Frais::enregistrerVersement($idFrais, $montant);
+        GenerateurRecu::generer($idPaiement);
+        Notificateur::paiementConfirme($idPaiement);
+    } else {
+        Notificateur::paiementEchoue($idPaiement, $raison);
+    }
+    // Les notifications de plus de 3 jours ont déjà été lues par le parent ; les récentes restent non lues.
+    $lue = strtotime($date) < strtotime('-3 days') ? 1 : 0;
+    $db->prepare('UPDATE notification SET lu = ? WHERE id_notification = LAST_INSERT_ID()')->execute([$lue]);
     $db->commit();
     $db->prepare('SET timestamp = DEFAULT')->execute();
 };
@@ -226,12 +244,34 @@ foreach ($idsEleves as $i => $idEleve) {
         $operations[] = [$idEleve, 'mint1', $montant, $heure(-8 + $i % 6, 11, 15 + $i)];
     }
 }
-usort($operations, static fn(array $a, array $b): int => strcmp($a[3], $b[3]));
-foreach ($operations as [$idEleve, $categorie, $montant, $date]) {
-    $encaisser($idEleve, $idsCategories[$categorie], $montant, $date);
+// Paiements en ligne récents : [indice de l'élève, catégorie, montant, jour, heure, mode, réussi, motif d'échec].
+$enLigne = [
+    [7,  'mint1', 150.00, -9, '19:42', 'mobile_money', true,  ''],
+    [11, 'mint1', 100.00, -7, '20:15', 'mobile_money', true,  ''],
+    [13, 'mint1', 150.00, -6, '21:03', 'carte',        true,  ''],
+    [3,  'mint1',  75.00, -5, '12:30', 'mobile_money', true,  ''],
+    [18, 'mint1',  50.00, -4, '18:05', 'mobile_money', false, 'Solde insuffisant'],
+    [18, 'mint1',  50.00, -4, '18:22', 'mobile_money', true,  ''],
+    [20, 'inscr',  25.00, -3, '07:48', 'carte',        true,  ''],
+    [15, 'mint1', 150.00, -2, '22:10', 'carte',        false, 'Carte refusée par la banque émettrice'],
+    [9,  'mint1',  30.00, -2, '13:17', 'mobile_money', true,  ''],
+    [6,  'exam',   40.00, -1, '08:55', 'mobile_money', true,  ''],
+    [12, 'exam',   40.00, -1, '10:40', 'carte',        true,  ''],
+    [15, 'mint1', 150.00, -1, '07:12', 'mobile_money', true,  ''],
+];
+foreach ($enLigne as [$i, $categorie, $montant, $decalage, $h, $mode, $succes, $raison]) {
+    $operations[] = [(int) $idsEleves[$i], $categorie, $montant, $jour($decalage) . " $h:00", $mode, $succes, $raison];
 }
-echo count($operations) . " paiements au guichet enregistrés, avec reçus PDF et notifications.\n";
+
+usort($operations, static fn(array $a, array $b): int => strcmp($a[3], $b[3]));
+foreach ($operations as $operation) {
+    [$idEleve, $categorie, $montant, $date] = $operation;
+    $encaisser($idEleve, $idsCategories[$categorie], $montant, $date, $operation[4] ?? 'especes', $operation[5] ?? true, $operation[6] ?? '');
+}
+printf("%d paiements enregistrés (%d au guichet, %d en ligne dont %d échoués), avec reçus PDF et notifications.\n",
+    count($operations), count($operations) - count($enLigne), count($enLigne),
+    count(array_filter($enLigne, static fn(array $o): bool => !$o[6])));
 
 // Le journal des e-mails repart à vide après l'installation.
-file_put_contents(RACINE . '/storage/logs/mail.log', '');
+file_put_contents(LOGS_DIR . '/mail.log', '');
 echo "Terminé.\n";

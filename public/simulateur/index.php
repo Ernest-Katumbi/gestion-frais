@@ -12,6 +12,12 @@ declare(strict_types=1);
 
 require dirname(__DIR__, 2) . '/core/bootstrap.php';
 
+// Le simulateur n'existe qu'en mode sandbox : avec une passerelle réelle, il est désactivé.
+if (PAYMENT_DRIVER !== 'simulateur') {
+    http_response_code(404);
+    exit('Simulateur désactivé.');
+}
+
 header('X-Content-Type-Options: nosniff');
 header('Referrer-Policy: no-referrer');
 header("Content-Security-Policy: default-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline'; script-src 'self'; form-action 'self'; frame-ancestors 'none'");
