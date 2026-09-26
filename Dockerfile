@@ -25,7 +25,7 @@ RUN mv "$PHP_INI_DIR/php.ini-production" "$PHP_INI_DIR/php.ini" \
       > "$PHP_INI_DIR/conf.d/zz-gestion-frais.ini"
 
 # Apache : racine web = public/, en-têtes, point d'entrée unique.
-RUN a2enmod headers \
+RUN a2enmod headers rewrite \
  && rm -f /etc/apache2/sites-enabled/000-default.conf
 COPY docker/apache.conf /etc/apache2/sites-enabled/gestion-frais.conf
 RUN echo 'ServerName localhost' >> /etc/apache2/apache2.conf \
