@@ -94,6 +94,7 @@ final class RapportController extends Controller
             'parCategorie'  => Paiement::ventilation($periode['du'], $periode['au'], 'categorie'),
             'parClasse'     => Paiement::ventilation($periode['du'], $periode['au'], 'classe'),
             'parMode'       => Paiement::ventilation($periode['du'], $periode['au'], 'mode'),
+            'parDevise'     => Paiement::ventilation($periode['du'], $periode['au'], 'devise'),
             'impayesClasse' => Frais::impayesParClasse(),
         ];
     }

@@ -16,6 +16,7 @@ $max = max([0.0, ...array_column($serie, 'valeur')]);
 $n = count($serie);
 $pasEtiquette = $n <= 16 ? 1 : (int) ceil($n / 12);
 $ventilations = ['Catégorie' => $parCategorie, 'Classe' => $parClasse, 'Mode' => $parMode];
+$devises = $parDevise ?? [];
 ?>
 <!DOCTYPE html>
 <html lang="fr">
@@ -130,6 +131,21 @@ $ventilations = ['Catégorie' => $parCategorie, 'Classe' => $parClasse, 'Mode' =
                 </td>
             <?php endforeach; ?>
         </tr>
+    </table>
+<?php endif; ?>
+
+<?php if ($somme > 0 && $devises !== []): ?>
+    <h2>Encaissements par devise de versement</h2>
+    <table class="liste">
+        <tr><th>Devise versée</th><th class="num">Paiements</th><th class="num">Contre-valeur (<?= e(symboleDevise()) ?>)</th><th class="num">%</th></tr>
+        <?php foreach ($devises as $l): ?>
+            <tr>
+                <td><?= e($l['libelle']) ?></td>
+                <td class="num"><?= (int) $l['nb'] ?></td>
+                <td class="num"><?= e(formaterMontant($l['somme'])) ?></td>
+                <td class="num"><?= e(number_format((float) $l['somme'] / $somme * 100, 1, ',', ' ')) ?></td>
+            </tr>
+        <?php endforeach; ?>
     </table>
 <?php endif; ?>
 

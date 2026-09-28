@@ -62,9 +62,22 @@ abstract class Controller
 
     /**
      * Validation serveur. Règles séparées par « | » :
-     * requis, email, min:n, max:n, dans:a,b,c, telephone, date, montant, entier, mot_de_passe.
+     * requis, email, min:n, max:n, dans:a,b,c, telephone, date, montant[:DEVISE], entier, mot_de_passe.
      * Renvoie un tableau champ => premier message d'erreur.
      */
+    /** Montant positif avec au plus le nombre de décimales de la devise (le franc n'en a pas). */
+    private static function montantValide(string $valeur, string $devise): ?string
+    {
+        $decimales = decimalesDevise($devise);
+        $motif = $decimales > 0 ? '/^\d+([.,]\d{1,' . $decimales . '})?$/' : '/^\d+$/';
+        if (preg_match($motif, $valeur) && (float) str_replace(',', '.', $valeur) > 0) {
+            return null;
+        }
+        return $decimales > 0
+            ? "Montant invalide (nombre positif, $decimales décimales au plus)."
+            : 'Montant invalide : nombre entier positif en ' . symboleDevise($devise) . '.';
+    }
+
     protected function valider(array $donnees, array $regles): array
     {
         $erreurs = [];
@@ -83,8 +96,7 @@ abstract class Controller
                     'dans'         => in_array($valeur, explode(',', (string) $param), true) ? null : 'Valeur non autorisée.',
                     'telephone'    => preg_match('/^\+?[0-9 ]{9,20}$/', $valeur) ? null : 'Numéro invalide (ex. +243 97 123 4567).',
                     'date'         => dateValide($valeur) ? null : 'Date invalide.',
-                    'montant'      => preg_match('/^\d+([.,]\d{1,2})?$/', $valeur) && (float) str_replace(',', '.', $valeur) > 0
-                                        ? null : 'Montant invalide (nombre positif, 2 décimales au plus).',
+                    'montant'      => self::montantValide($valeur, $param ?: DEVISE),
                     'entier'       => ctype_digit($valeur) ? null : 'Nombre entier attendu.',
                     'mot_de_passe' => preg_match('/^(?=.*[A-Za-z])(?=.*\d).{8,}$/', $valeur)
                                         ? null : 'Au moins 8 caractères, dont une lettre et un chiffre.',

@@ -56,6 +56,8 @@ $router->get('/impayes',         [FraisController::class, 'impayes']);
 $router->get('/impayes/pdf',     [FraisController::class, 'impayesPdf']);
 
 $router->get('/rapports',     [RapportController::class, 'index']);
+$router->get('/taux-change',  [TauxChangeController::class, 'index']);
+$router->post('/taux-change', [TauxChangeController::class, 'enregistrer']);
 $router->get('/rapports/pdf', [RapportController::class, 'pdf']);
 
 $router->get('/paiements/guichet',  [PaiementController::class, 'guichet']);

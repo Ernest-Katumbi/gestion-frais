@@ -70,7 +70,7 @@ if ($transaction !== null && ($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
     }
 }
 
-$montant = $transaction ? formaterMontant($transaction['montant']) : '';
+$montant = $transaction ? formaterMontant($transaction['montant'], $transaction['devise'] ?? DEVISE) : '';
 ?>
 <!DOCTYPE html>
 <html lang="fr">

@@ -48,7 +48,7 @@ $tableau ??= true;
         <?php endforeach; ?>
     </div>
     <figcaption class="chart__legende">
-        <?= e($serie) ?> en <?= e(DEVISE) ?> · total <strong class="num"><?= e(formaterMontant($total)) ?></strong>
+        <?= e($serie) ?> en <?= e(symboleDevise()) ?> · total <strong class="num"><?= e(formaterMontant($total)) ?></strong>
     </figcaption>
     <?php if ($tableau): ?>
         <details class="chart__donnees">

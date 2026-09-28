@@ -51,7 +51,7 @@ $urlPayer = '/parent/frais/' . $id . '/payer';
             <?php foreach ($paiements as $p): ?>
                 <li>
                     <div class="list__main">
-                        <strong class="num"><?= e(formaterMontant($p['montant'])) ?></strong>
+                        <strong class="num"><?= e(Monnaie::libelleVersement($p)) ?></strong>
                         <span><?= e(formaterDateHeure($p['date_paiement'])) ?> · <?= e(Paiement::MODES[$p['mode']]) ?></span>
                     </div>
                     <?= badgeStatut($p['statut']) ?>

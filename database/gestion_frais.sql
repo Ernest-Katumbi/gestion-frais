@@ -8,7 +8,7 @@
 
 SET NAMES utf8mb4;
 SET FOREIGN_KEY_CHECKS = 0;
-DROP TABLE IF EXISTS tentative_connexion, notification, recu, paiement, frais, categorie_frais, eleve, classe, utilisateur;
+DROP TABLE IF EXISTS tentative_connexion, taux_change, notification, recu, paiement, frais, categorie_frais, eleve, classe, utilisateur;
 SET FOREIGN_KEY_CHECKS = 1;
 
 -- -----------------------------------------------------------------------------
@@ -64,7 +64,10 @@ CREATE TABLE frais (
 CREATE TABLE paiement (
   id_paiement INT AUTO_INCREMENT PRIMARY KEY,
   reference VARCHAR(100) NOT NULL UNIQUE,
-  montant DECIMAL(10,2) NOT NULL CHECK (montant > 0),
+  montant DECIMAL(10,2) NOT NULL CHECK (montant > 0),   -- en devise de base (FC) : compte dans les soldes
+  devise_versee CHAR(3) NOT NULL,                        -- devise du versement (CDF ou USD)
+  montant_verse DECIMAL(12,2) NOT NULL CHECK (montant_verse > 0),  -- montant réellement versé, dans cette devise
+  taux_applique DECIMAL(14,6) NULL,                      -- taux utilisé si devise étrangère (FC pour 1 USD)
   mode ENUM('mobile_money','carte','especes') NOT NULL,
   statut ENUM('en_attente','reussi','echoue') NOT NULL DEFAULT 'en_attente',
   date_paiement DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -90,6 +93,18 @@ CREATE TABLE notification (
   lu BOOLEAN NOT NULL DEFAULT FALSE,
   date_envoi DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
   id_utilisateur INT NOT NULL,
+  FOREIGN KEY (id_utilisateur) REFERENCES utilisateur(id_utilisateur) ON DELETE RESTRICT
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Taux de change saisis par le comptable (historique conservé) :
+-- nombre d'unités de la devise de base pour une unité de la devise étrangère.
+CREATE TABLE taux_change (
+  id_taux INT AUTO_INCREMENT PRIMARY KEY,
+  devise CHAR(3) NOT NULL,
+  taux DECIMAL(14,6) NOT NULL CHECK (taux > 0),
+  date_application DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  id_utilisateur INT NOT NULL,
+  INDEX idx_taux_devise_date (devise, date_application),
   FOREIGN KEY (id_utilisateur) REFERENCES utilisateur(id_utilisateur) ON DELETE RESTRICT
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 

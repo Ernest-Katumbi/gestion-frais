@@ -6,7 +6,10 @@ cadre d'un mémoire de fin d'études en génie logiciel.
 
 - **Administrateur** : utilisateurs, classes, élèves (création automatique du compte parent), tableau de bord global.
 - **Comptable** : catégories de frais, affectation aux classes, encaissement au guichet avec reçu PDF,
-  impayés, paiements, rapports par période avec graphique et export PDF.
+  impayés, paiements, rapports par période avec graphique et export PDF, taux de change du jour.
+- **Monnaie** : frais et soldes tenus en **francs congolais (FC)** ; paiements acceptés en FC ou en
+  **dollars (USD)**, convertis au taux du jour saisi par le comptable (historique conservé ; chaque
+  paiement garde le montant versé, la devise et le taux appliqué).
 - **Parent** : frais de ses enfants, paiement en ligne (Mobile Money ou carte via la passerelle),
   suivi en direct, reçus, historique, notifications.
 - **Passerelle de paiement** : interface `PasserellePaiement` ; simulateur local (téléphone Mobile
@@ -42,7 +45,9 @@ HTML / CSS / JavaScript sans CDN. Bibliothèques Composer : Dompdf (PDF), chille
    si besoin les valeurs par défaut :
    - `DB_PORT` (3306 par défaut ; autre valeur si le port est occupé par un autre MySQL) ;
    - `RECU_SECRET` et `PAYMENT_WEBHOOK_SECRET` : remplacer par deux longues chaînes aléatoires,
-     par exemple le résultat de `php -r "echo bin2hex(random_bytes(32));"`.
+     par exemple le résultat de `php -r "echo bin2hex(random_bytes(32));"` ;
+   - `DEVISE` (devise de tenue des comptes, `CDF` par défaut) et `DEVISE_ETRANGERE` (`USD`) ;
+     le taux de change se saisit ensuite dans l'application (menu **Taux de change** du comptable).
 4. **Démarrer Apache et MySQL** dans le panneau de contrôle XAMPP.
 5. **Créer la base et les données de démonstration** (≈ 1 minute, les reçus PDF sont générés) :
 
@@ -68,8 +73,9 @@ Mot de passe commun : **`Demo@2026`**
 | Parent (2 enfants : Merveille et Glody Kabongo) | `parent@oliviers.cd` |
 | Autres parents | `e.mujinga@oliviers.cd`, `d.tshibangu@oliviers.cd`, `c.kasongo@oliviers.cd` |
 
-Les données de démonstration comprennent 6 classes, 24 élèves, 16 familles, 4 catégories de frais,
-96 frais et 49 paiements (guichet et en ligne, réussis et échoués) avec leurs reçus et notifications.
+Les données de démonstration comprennent 6 classes, 24 élèves, 16 familles, 4 catégories de frais
+(en FC), 96 frais, 3 taux de change et 49 paiements (guichet et en ligne, en FC et en USD, réussis et
+échoués) avec leurs reçus et notifications.
 Toutes les dates sont calculées par rapport au jour de l'installation : il y a toujours des
 échéances passées, proches (dans 3 jours) et futures.
 
@@ -91,8 +97,8 @@ Toutes les dates sont calculées par rapport au jour de l'installation : il y a 
 schtasks /create /tn "Rappels frais scolaires" /sc daily /st 07:00 /tr "C:\xampp\php\php.exe C:\xampp\htdocs\gestion-frais\cron\rappels_echeances.php"
 ```
 
-**Tests** : `vendor/bin/phpunit` exécute 23 tests (règles des frais, références de paiement,
-signature et idempotence du callback) sur une base dédiée `gestion_frais_test`, sans toucher aux
+**Tests** : `vendor/bin/phpunit` exécute 34 tests (règles des frais, références de paiement,
+conversion des devises, signature et idempotence du callback) sur une base dédiée `gestion_frais_test`, sans toucher aux
 données de démonstration. Le cahier de tests manuels **CT01 à CT15** est dans [`TESTS.md`](TESTS.md).
 
 **E-mails** : avec `MAIL_DRIVER = 'log'` (défaut), les e-mails sont écrits dans
@@ -106,10 +112,10 @@ données de démonstration. Le cahier de tests manuels **CT01 à CT15** est dans
 ```
 config/       configuration (hors webroot) et table des routes
 core/         Database, Router, Session, Csrf, View, Controller, helpers (e(), exigerRole(), passerelle()…)
-controllers/  Auth, User, Classe, Eleve, Frais, Paiement, Rapport, Parent
-models/       User, Classe, Eleve, CategorieFrais, Frais, Paiement, Recu, Notification
+controllers/  Auth, User, Classe, Eleve, Frais, Paiement, Rapport, Parent, TauxChange
+models/       User, Classe, Eleve, CategorieFrais, Frais, Paiement, Recu, Notification, TauxChange
 services/     PasserellePaiement (interface), SimulateurPasserelle, PasserelleReelle (squelette),
-              GenerateurRecu (PDF + QR), Notificateur (notifications et e-mails)
+              GenerateurRecu (PDF + QR), Notificateur (notifications et e-mails), Monnaie (conversion)
 views/        layouts, partials, vues par rôle, gabarits PDF (reçu, rapport, impayés)
 public/       index.php (contrôleur frontal), callback.php, verifier-recu.php, simulateur/, assets/
 cron/         rappels_echeances.php

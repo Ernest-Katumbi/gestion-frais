@@ -794,6 +794,12 @@ a.cell-user:hover, a.list__main:hover { text-decoration: none; }
 .historique .list__main span { white-space: normal; }
 .historique__droite { display: grid; justify-items: end; gap: .3rem; text-align: right; }
 
+/* Taux de change */
+.taux-actuel { background: linear-gradient(135deg, var(--primary-soft), #fff); }
+.taux-actuel__valeur { margin: .2rem 0 .4rem; font-size: 1.7rem; font-weight: 700; letter-spacing: -.02em; color: var(--primary-strong); }
+.devises { display: inline-flex; margin-bottom: .75rem; }
+.conversion { margin-top: .4rem; font-size: .85rem; color: var(--text-muted); font-variant-numeric: tabular-nums; }
+
 /* --- Pages hors connexion (connexion, erreurs) ------------------------------- */
 .auth-page {
   min-height: 100vh;

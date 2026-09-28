@@ -23,7 +23,7 @@ fi
 if [ "${AUTO_SEED:-true}" = "true" ]; then
     (
         sleep 2
-        su -p -s /bin/sh www-data -c "/usr/local/bin/php /var/www/html/database/seed.php --si-vide --sans-pdf" \
+        su -p -s /bin/sh www-data -c "/usr/local/bin/php /var/www/html/database/seed.php --si-necessaire --sans-pdf" \
             && echo "[gestion-frais] Base prête." \
             || echo "[gestion-frais] Installation de la base impossible : vérifiez les variables DB_*."
     ) &

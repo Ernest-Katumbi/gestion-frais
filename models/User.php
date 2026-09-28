@@ -129,16 +129,17 @@ final class User
 
     /**
      * Un utilisateur a un historique s'il est parent d'un élève, s'il a encaissé
-     * un paiement ou s'il a reçu des notifications : il ne peut alors qu'être désactivé.
+     * un paiement, saisi un taux de change ou reçu des notifications : il ne peut alors qu'être désactivé.
      */
     public static function aUnHistorique(int $id): bool
     {
         $requete = Database::get()->prepare(
             'SELECT (SELECT COUNT(*) FROM eleve WHERE id_parent = ?)
                   + (SELECT COUNT(*) FROM paiement WHERE id_comptable = ?)
-                  + (SELECT COUNT(*) FROM notification WHERE id_utilisateur = ?)'
+                  + (SELECT COUNT(*) FROM notification WHERE id_utilisateur = ?)
+                  + (SELECT COUNT(*) FROM taux_change WHERE id_utilisateur = ?)'
         );
-        $requete->execute([$id, $id, $id]);
+        $requete->execute([$id, $id, $id, $id]);
         return (int) $requete->fetchColumn() > 0;
     }
 

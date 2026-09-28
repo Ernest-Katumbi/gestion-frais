@@ -29,7 +29,7 @@ $mobile = $p['mode'] === 'mobile_money';
         <div class="suivi__etat is-reussi">
             <span class="suivi__icone"><?= icone('check-circle') ?></span>
             <h2>Paiement confirmé</h2>
-            <p>Merci ! Votre paiement de <strong class="num"><?= e(formaterMontant($p['montant'])) ?></strong> a bien été reçu.
+            <p>Merci ! Votre paiement de <strong class="num"><?= e(Monnaie::libelleVersement($p)) ?></strong> a bien été reçu.
                 <?= (float) $p['frais_reste'] > 0
                     ? 'Il reste ' . e(formaterMontant($p['frais_reste'])) . ' à payer sur ce frais.'
                     : 'Ce frais est désormais entièrement réglé.' ?></p>
@@ -55,7 +55,8 @@ $mobile = $p['mode'] === 'mobile_money';
     <dl class="dl suivi__details">
         <dt>Élève</dt><dd><?= e($p['eleve_prenom'] . ' ' . $p['eleve_nom']) ?></dd>
         <dt>Frais</dt><dd><?= e($p['categorie']) ?></dd>
-        <dt>Montant</dt><dd class="num fw-600"><?= e(formaterMontant($p['montant'])) ?></dd>
+        <dt>Montant</dt><dd class="num fw-600"><?= e(Monnaie::libelleVersement($p)) ?></dd>
+        <?php if ($p['devise_versee'] !== DEVISE): ?><dt>Taux</dt><dd class="num"><?= e(formaterTaux($p['taux_applique'], $p['devise_versee'])) ?></dd><?php endif; ?>
         <dt>Moyen</dt><dd><?= e(Paiement::MODES[$p['mode']]) ?></dd>
         <dt>Référence</dt><dd class="num"><?= e($p['reference']) ?></dd>
         <dt>Statut</dt><dd><?= badgeStatut($p['statut']) ?></dd>

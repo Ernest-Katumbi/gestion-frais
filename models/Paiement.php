@@ -51,12 +51,16 @@ final class Paiement
     public static function creer(array $d): int
     {
         $requete = Database::get()->prepare(
-            'INSERT INTO paiement (reference, montant, mode, statut, date_paiement, id_frais, id_comptable)
-             VALUES (?, ?, ?, ?, ?, ?, ?)'
+            'INSERT INTO paiement (reference, montant, devise_versee, montant_verse, taux_applique, mode, statut, date_paiement, id_frais, id_comptable)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
         );
+        // Montant en devise de base ; sans précision, le versement est fait dans la devise de base.
         $requete->execute([
             $d['reference'],
             number_format((float) $d['montant'], 2, '.', ''),
+            $d['devise_versee'] ?? DEVISE,
+            number_format((float) ($d['montant_verse'] ?? $d['montant']), 2, '.', ''),
+            isset($d['taux_applique']) ? number_format((float) $d['taux_applique'], 6, '.', '') : null,
             $d['mode'],
             $d['statut'],
             $d['date_paiement'] ?? date('Y-m-d H:i:s'),
@@ -205,10 +209,11 @@ final class Paiement
             'categorie' => 'c.libelle',
             'classe'    => 'cl.libelle',
             'mode'      => 'pa.mode',
+            'devise'    => 'pa.devise_versee',
             default     => throw new InvalidArgumentException("Dimension inconnue : $dimension"),
         };
         $requete = Database::get()->prepare(
-            "SELECT $colonne AS libelle, COUNT(*) AS nb, SUM(pa.montant) AS somme
+            "SELECT $colonne AS libelle, COUNT(*) AS nb, SUM(pa.montant) AS somme, SUM(pa.montant_verse) AS somme_versee
              FROM paiement pa
              JOIN frais f ON f.id_frais = pa.id_frais
              JOIN categorie_frais c ON c.id_categorie = f.id_categorie
@@ -220,9 +225,12 @@ final class Paiement
         );
         $requete->execute([$du . ' 00:00:00', $au . ' 23:59:59']);
         $lignes = $requete->fetchAll();
-        if ($dimension === 'mode') {
-            foreach ($lignes as &$ligne) {
+        foreach ($lignes as &$ligne) {
+            if ($dimension === 'mode') {
                 $ligne['libelle'] = self::MODES[$ligne['libelle']];
+            } elseif ($dimension === 'devise') {
+                // Montant réellement encaissé dans chaque devise, et sa contre-valeur en devise de base.
+                $ligne['libelle'] = 'Versé en ' . symboleDevise($ligne['libelle']) . ' : ' . formaterMontant($ligne['somme_versee'], $ligne['libelle']);
             }
         }
         return $lignes;

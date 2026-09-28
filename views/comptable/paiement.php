@@ -43,6 +43,10 @@ $bandeaux = [
                 <dt>Parent</dt><dd><?= e($p['parent_nom']) ?><?= $p['parent_telephone'] ? ' · <span class="num">' . e($p['parent_telephone']) . '</span>' : '' ?></dd>
                 <dt>Frais</dt><dd><?= e($p['categorie']) ?> — échéance <?= e(formaterDate($p['echeance'])) ?></dd>
                 <dt>Mode</dt><dd><?= e(Paiement::MODES[$p['mode']]) ?></dd>
+                <?php if ($p['devise_versee'] !== DEVISE): ?>
+                    <dt>Montant versé</dt><dd class="num"><?= e(formaterMontant($p['montant_verse'], $p['devise_versee'])) ?></dd>
+                    <dt>Taux appliqué</dt><dd class="num"><?= e(formaterTaux($p['taux_applique'], $p['devise_versee'])) ?></dd>
+                <?php endif; ?>
                 <dt>Référence</dt><dd class="num"><?= e($p['reference']) ?></dd>
                 <?php if ($p['comptable_nom']): ?><dt>Encaissé par</dt><dd><?= e($p['comptable_nom']) ?></dd><?php endif; ?>
             </dl>
@@ -82,7 +86,7 @@ $bandeaux = [
                     <?php foreach ($autres as $a): ?>
                         <li>
                             <a class="list__main" href="<?= url('/paiements/' . (int) $a['id_paiement']) ?>">
-                                <strong class="num"><?= e(formaterMontant($a['montant'])) ?></strong>
+                                <strong class="num"><?= e(Monnaie::libelleVersement($a)) ?></strong>
                                 <span><?= e(formaterDateHeure($a['date_paiement'])) ?> · <?= e(Paiement::MODES[$a['mode']]) ?></span>
                             </a>
                             <?= badgeStatut($a['statut']) ?>

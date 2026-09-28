@@ -13,10 +13,56 @@ function e(mixed $valeur): string
     return htmlspecialchars((string) $valeur, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
 }
 
-/** Montant formaté avec la devise : 1 250,00 USD (espaces insécables). */
-function formaterMontant(float|string|null $montant): string
+/** Symbole, nom et nombre de décimales d'une devise (devise de base par défaut). */
+function infosDevise(?string $code = null): array
 {
-    return number_format((float) $montant, 2, ',', "\u{00A0}") . "\u{00A0}" . DEVISE;
+    $code ??= DEVISE;
+    return (DEVISES[$code] ?? []) + ['symbole' => $code, 'nom' => $code, 'decimales' => 2];
+}
+
+function symboleDevise(?string $code = null): string
+{
+    return infosDevise($code)['symbole'];
+}
+
+function decimalesDevise(?string $code = null): int
+{
+    return (int) infosDevise($code)['decimales'];
+}
+
+/**
+ * Montant formaté dans sa devise (devise de base par défaut), espaces insécables :
+ * 450 000 FC, 150,00 USD.
+ */
+function formaterMontant(float|string|null $montant, ?string $devise = null): string
+{
+    $d = infosDevise($devise);
+    $decimales = (int) $d['decimales'];
+    return number_format(round((float) $montant, $decimales), $decimales, ',', "\u{00A0}") . "\u{00A0}" . $d['symbole'];
+}
+
+/**
+ * Attributs data-* d'un formulaire de paiement : devise de base, devise étrangère et taux,
+ * pour la conversion affichée en direct par app.js.
+ */
+function attributsDevises(?array $taux): string
+{
+    $base = infosDevise();
+    $attributs = sprintf(' data-base="%s" data-base-symbole="%s" data-base-decimales="%d"',
+        e(DEVISE), e($base['symbole']), (int) $base['decimales']);
+    if ($taux !== null) {
+        $etrangere = infosDevise(DEVISE_ETRANGERE);
+        $attributs .= sprintf(' data-etr="%s" data-etr-symbole="%s" data-etr-decimales="%d" data-taux="%s"',
+            e(DEVISE_ETRANGERE), e($etrangere['symbole']), (int) $etrangere['decimales'], e((string) (float) $taux['taux']));
+    }
+    return $attributs;
+}
+
+/** Taux lisible : « 1 USD = 2 850 FC ». */
+function formaterTaux(float|string $taux, ?string $devise = null): string
+{
+    $texte = rtrim(rtrim(number_format((float) $taux, 6, ',', "\u{00A0}"), '0'), ',');
+    return "1\u{00A0}" . symboleDevise($devise ?? DEVISE_ETRANGERE) . ' = ' . $texte . "\u{00A0}" . symboleDevise();
 }
 
 /** Date au format 24/09/2026. */

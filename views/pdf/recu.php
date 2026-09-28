@@ -101,6 +101,10 @@ $reste = (float) $p['frais_reste'];
             <table class="details">
                 <tr><td class="cle">Date</td><td class="val"><?= e(formaterDateHeure($p['date_paiement'])) ?></td></tr>
                 <tr><td class="cle">Mode</td><td class="val"><?= e(Paiement::MODES[$p['mode']]) ?></td></tr>
+                <?php if ($p['devise_versee'] !== DEVISE): ?>
+                    <tr><td class="cle">Versé</td><td class="val"><?= e(formaterMontant($p['montant_verse'], $p['devise_versee'])) ?></td></tr>
+                    <tr><td class="cle">Taux</td><td class="val ref"><?= e(formaterTaux($p['taux_applique'], $p['devise_versee'])) ?></td></tr>
+                <?php endif; ?>
                 <tr><td class="cle">Référence</td><td class="val ref"><?= e($p['reference']) ?></td></tr>
                 <?php if (!empty($p['comptable_nom'])): ?>
                     <tr><td class="cle">Encaissé par</td><td class="val"><?= e($p['comptable_nom']) ?></td></tr>

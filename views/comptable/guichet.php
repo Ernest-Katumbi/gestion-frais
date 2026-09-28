@@ -8,6 +8,7 @@
  * @var array      $totaux
  * @var int        $nbSoldes
  * @var int        $idFraisChoisi
+ * @var array|null $taux           taux de change en vigueur
  */
 $ancien = Session::lireFlash('old', []);
 $idChoisi = (int) ($ancien['id_frais'] ?? $idFraisChoisi);
@@ -84,7 +85,7 @@ $erreurMontant = erreur('montant');
             ]) ?>
         </section>
     <?php else: ?>
-        <form method="post" action="<?= url('/paiements/guichet') ?>" class="card" data-validate data-guichet data-devise="<?= e(DEVISE) ?>"
+        <form method="post" action="<?= url('/paiements/guichet') ?>" class="card" data-validate data-guichet<?= attributsDevises($taux) ?>
               data-confirm="Confirmez-vous l'encaissement de ce montant en espèces ? Le reçu sera émis immédiatement."
               data-confirm-titre="Enregistrer le paiement ?" data-confirm-bouton="Encaisser" data-confirm-type="primary">
             <?= csrf_champ() ?>
@@ -121,16 +122,10 @@ $erreurMontant = erreur('montant');
             <div class="card__header card__header--top"><h3>2. Montant versé</h3></div>
             <div class="card__body">
                 <div class="form-grid">
-                    <div class="field<?= $erreurMontant ? ' has-error' : '' ?>">
-                        <label for="montant">Montant reçu (<?= e(DEVISE) ?>)<span class="required" aria-hidden="true">*</span></label>
-                        <div class="input-suffix">
-                            <input type="number" id="montant" name="montant" required step="0.01" min="0.01" inputmode="decimal"
-                                   value="<?= e($ancien['montant'] ?? '') ?>" class="input-montant" aria-describedby="montant-aide">
-                            <span><?= e(DEVISE) ?></span>
-                        </div>
-                        <span class="hint" id="montant-aide" data-montant-aide>Versement partiel accepté, jamais supérieur au reste.</span>
-                        <?php if ($erreurMontant): ?><span class="error"><?= icone('alert-circle') ?><?= e($erreurMontant) ?></span><?php endif; ?>
-                    </div>
+                    <?= View::partiel('montant_devise', [
+                        'libelle' => 'Montant reçu', 'taux' => $taux, 'ancien' => $ancien,
+                        'erreurMontant' => $erreurMontant, 'valeurDefaut' => '',
+                    ]) ?>
                     <div class="field">
                         <span class="label">Mode de paiement</span>
                         <div class="static-field"><?= icone('banknote') ?> Espèces (guichet)</div>

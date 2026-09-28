@@ -61,7 +61,7 @@ final class Notificateur
         $reste = (float) $p['frais_reste'];
         $message = sprintf(
             'Paiement de %s reçu pour « %s » de %s. Reçu n° %s.%s',
-            formaterMontant($p['montant']),
+            Monnaie::libelleVersement($p),
             $p['categorie'],
             $eleve,
             $p['recu_numero'] ?? '—',
@@ -73,7 +73,8 @@ final class Notificateur
             . "Nous confirmons la réception de votre paiement.\n\n"
             . "Élève          : $eleve ({$p['matricule']}, {$p['classe']})\n"
             . "Frais          : {$p['categorie']}\n"
-            . 'Montant payé   : ' . formaterMontant($p['montant']) . "\n"
+            . 'Montant payé   : ' . Monnaie::libelleVersement($p) . "\n"
+            . ($p['devise_versee'] !== DEVISE ? 'Taux appliqué  : ' . formaterTaux($p['taux_applique'], $p['devise_versee']) . "\n" : '')
             . 'Mode           : ' . Paiement::MODES[$p['mode']] . "\n"
             . "Référence      : {$p['reference']}\n"
             . 'Reçu           : ' . ($p['recu_numero'] ?? '—') . "\n"
@@ -94,11 +95,11 @@ final class Notificateur
         $raison = $raison !== '' ? $raison : 'refusé par la passerelle';
         Notification::creer((int) $p['id_parent'], 'paiement', sprintf(
             'Échec du paiement de %s pour « %s » de %s (réf. %s) : %s. Aucun montant n\'a été débité.',
-            formaterMontant($p['montant']), $p['categorie'], $eleve, $p['reference'], $raison
+            Monnaie::libelleVersement($p), $p['categorie'], $eleve, $p['reference'], $raison
         ));
         self::envoyerEmail($p['parent_email'], 'Paiement non abouti — ' . $p['categorie'] . ' — ' . $eleve,
             "Bonjour {$p['parent_nom']},\n\n"
-            . 'Votre paiement de ' . formaterMontant($p['montant']) . " pour « {$p['categorie']} » de $eleve n'a pas abouti.\n"
+            . 'Votre paiement de ' . Monnaie::libelleVersement($p) . " pour « {$p['categorie']} » de $eleve n'a pas abouti.\n"
             . "Motif : $raison.\nRéférence : {$p['reference']}\n\n"
             . "Aucun montant n'a été débité. Vous pouvez réessayer depuis votre espace parent : " . urlAbsolue('/parent') . "\n\n"
             . "La comptabilité de l'" . APP_NOM);

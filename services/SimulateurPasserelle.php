@@ -27,7 +27,7 @@ final class SimulateurPasserelle implements PasserellePaiement
             'transaction' => 'SIM-' . strtoupper(bin2hex(random_bytes(5))),
             'reference'   => $reference,
             'montant'     => round($montant, 2),
-            'devise'      => DEVISE,
+            'devise'      => $client['devise'] ?? DEVISE,
             'mode'        => $mode,
             'operateur'   => $client['operateur'] ?? null,
             'client'      => [
@@ -41,7 +41,7 @@ final class SimulateurPasserelle implements PasserellePaiement
             'cree_le'     => date('Y-m-d H:i:s'),
         ];
         self::enregistrer($transaction);
-        journaliser('app', "Passerelle simulée : transaction {$transaction['transaction']} initiée pour $reference ($mode, {$transaction['montant']} " . DEVISE . ')');
+        journaliser('app', "Passerelle simulée : transaction {$transaction['transaction']} initiée pour $reference ($mode, {$transaction['montant']} {$transaction['devise']})");
 
         return [
             'transaction'  => $transaction['transaction'],

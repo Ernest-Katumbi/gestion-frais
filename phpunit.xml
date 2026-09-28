@@ -16,6 +16,7 @@
             <file>tests/FraisTest.php</file>
             <file>tests/PaiementTest.php</file>
             <file>tests/PasserelleTest.php</file>
+            <file>tests/MonnaieTest.php</file>
         </testsuite>
     </testsuites>
     <php>

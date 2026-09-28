@@ -29,7 +29,7 @@
                 <dt>Matricule</dt><dd class="num"><?= e($paiement['matricule']) ?></dd>
                 <dt>Classe</dt><dd><?= e($paiement['classe']) ?></dd>
                 <dt>Frais</dt><dd><?= e($paiement['categorie']) ?></dd>
-                <dt>Montant payé</dt><dd class="num fw-600"><?= e(formaterMontant($paiement['montant'])) ?></dd>
+                <dt>Montant payé</dt><dd class="num fw-600"><?= e(Monnaie::libelleVersement($paiement)) ?></dd>
                 <dt>Payé le</dt><dd><?= e(formaterDateHeure($paiement['date_paiement'])) ?></dd>
                 <dt>Mode</dt><dd><?= e(Paiement::MODES[$paiement['mode']]) ?></dd>
             </dl>

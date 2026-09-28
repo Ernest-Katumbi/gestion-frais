@@ -79,7 +79,7 @@ $iconesMode = ['especes' => 'banknote', 'mobile_money' => 'smartphone', 'carte' 
                             </td>
                             <td data-label="Frais"><?= e($p['categorie']) ?></td>
                             <td data-label="Mode"><span class="mode"><?= icone($iconesMode[$p['mode']], 'icon-sm') ?> <?= e(Paiement::MODES[$p['mode']]) ?></span></td>
-                            <td data-label="Montant" class="col-num num fw-600"><?= e(formaterMontant($p['montant'])) ?></td>
+                            <td data-label="Montant" class="col-num num fw-600"><div><?= e(formaterMontant($p['montant'])) ?><?php if (($p['devise_versee'] ?? DEVISE) !== DEVISE): ?><span class="d-block text-small text-muted num">versé <?= e(formaterMontant($p['montant_verse'], $p['devise_versee'])) ?></span><?php endif; ?></div></td>
                             <td data-label="Statut"><?= badgeStatut($p['statut']) ?></td>
                             <td class="col-actions">
                                 <div class="actions">

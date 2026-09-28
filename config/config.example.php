@@ -50,7 +50,18 @@ define('RECUS_DIR', $env('RECUS_DIR', dirname(__DIR__) . '/recus'));          //
 define('LOGS_DIR', $env('LOGS_DIR', dirname(__DIR__) . '/storage/logs'));    // app.log, mail.log
 
 // --- Monnaie ----------------------------------------------------------------
-define('DEVISE', 'USD');                      // affichée partout : 1 250,00 USD
+// Devise de base, choisie à l'installation : frais, soldes et rapports sont tenus dans
+// cette devise. (La changer après la saisie de données fausserait tous les montants.)
+define('DEVISE', (string) $env('DEVISE', 'CDF'));
+// Seconde devise acceptée pour les paiements : convertie dans la devise de base au taux
+// du jour, saisi par le comptable dans l'écran « Taux de change ».
+define('DEVISE_ETRANGERE', (string) $env('DEVISE_ETRANGERE', 'USD'));
+// Présentation des devises : symbole affiché et nombre de décimales (le franc n'a pas de centimes).
+define('DEVISES', [
+    'CDF' => ['symbole' => 'FC',  'nom' => 'Franc congolais',  'decimales' => 0],
+    'USD' => ['symbole' => 'USD', 'nom' => 'Dollar américain', 'decimales' => 2],
+    'EUR' => ['symbole' => 'EUR', 'nom' => 'Euro',             'decimales' => 2],
+]);
 
 // --- Sécurité ---------------------------------------------------------------
 define('LOGIN_MAX_TENTATIVES', 5);            // échecs autorisés…

@@ -13,10 +13,10 @@ interface PasserellePaiement
     /**
      * Demande à la passerelle d'exécuter une transaction.
      *
-     * @param float  $montant   montant à débiter, dans la devise de l'application
+     * @param float  $montant   montant à débiter, dans la devise indiquée par $client['devise']
      * @param string $mode      'mobile_money' ou 'carte'
      * @param string $reference référence unique du paiement (PAY-AAAAMMJJ-XXXXXX)
-     * @param array  $client    nom, email, telephone, url_retour…
+     * @param array  $client    devise (CDF, USD…), nom, email, telephone, url_retour…
      * @return array ['url_paiement' => page où le client confirme, 'transaction' => identifiant chez la passerelle]
      */
     public function initierTransaction(float $montant, string $mode, string $reference, array $client): array;

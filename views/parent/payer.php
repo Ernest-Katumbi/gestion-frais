@@ -4,6 +4,7 @@
  * @var array $f          frais détaillé
  * @var array $parent
  * @var array $operateurs code => libellé
+ * @var array|null $taux    taux de change en vigueur
  */
 $ancien = Session::lireFlash('old', []);
 $mode = $ancien['mode'] ?? 'mobile_money';
@@ -12,7 +13,7 @@ $erreurMontant = erreur('montant');
 ?>
 <a href="<?= url('/parent/frais/' . (int) $f['id_frais']) ?>" class="btn btn-ghost btn-sm mb-2"><?= icone('arrow-left') ?> Retour au frais</a>
 
-<form method="post" action="<?= url('/parent/frais/' . (int) $f['id_frais'] . '/payer') ?>" class="card form paiement-form" data-validate data-guichet data-devise="<?= e(DEVISE) ?>">
+<form method="post" action="<?= url('/parent/frais/' . (int) $f['id_frais'] . '/payer') ?>" class="card form paiement-form" data-validate data-guichet<?= attributsDevises($taux) ?>>
     <?= csrf_champ() ?>
     <input type="hidden" data-frais-unique
            data-reste="<?= e(number_format($reste, 2, '.', '')) ?>"
@@ -30,16 +31,10 @@ $erreurMontant = erreur('montant');
 
     <div class="card__header card__header--top"><h3>1. Montant à payer</h3></div>
     <div class="card__body">
-        <div class="field<?= $erreurMontant ? ' has-error' : '' ?>">
-            <label for="montant">Montant (<?= e(DEVISE) ?>)<span class="required" aria-hidden="true">*</span></label>
-            <div class="input-suffix">
-                <input type="number" id="montant" name="montant" required step="0.01" inputmode="decimal"
-                       value="<?= e($ancien['montant'] ?? number_format($reste, 2, '.', '')) ?>" class="input-montant" aria-describedby="montant-aide">
-                <span><?= e(DEVISE) ?></span>
-            </div>
-            <span class="hint" id="montant-aide" data-montant-aide>Vous pouvez payer une partie du reste (au moins 1,00 <?= e(DEVISE) ?>).</span>
-            <?php if ($erreurMontant): ?><span class="error"><?= icone('alert-circle') ?><?= e($erreurMontant) ?></span><?php endif; ?>
-        </div>
+        <?= View::partiel('montant_devise', [
+            'libelle' => 'Montant à payer', 'taux' => $taux, 'ancien' => $ancien,
+            'erreurMontant' => $erreurMontant, 'valeurDefaut' => number_format($reste, decimalesDevise(), '.', ''),
+        ]) ?>
         <div class="apercu" data-apercu hidden></div>
     </div>
 

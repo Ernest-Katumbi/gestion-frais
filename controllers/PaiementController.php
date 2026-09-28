@@ -42,12 +42,14 @@ final class PaiementController extends Controller
             'totaux'     => Frais::totaux($fraisEleve),
             'nbSoldes'   => count($fraisEleve) - count($nonSoldes),
             'idFraisChoisi' => $idFrais,
+            'taux'       => TauxChange::actuel(),
         ]);
     }
 
     /**
      * Enregistre un paiement en espèces : paiement « reussi » immédiat, comptable renseigné,
      * mise à jour du frais, reçu et notification du parent, le tout dans une transaction.
+     * Le versement peut être fait en francs ou en dollars (converti au taux du jour).
      */
     public function encaisser(): void
     {
@@ -56,15 +58,19 @@ final class PaiementController extends Controller
         $idEleve = (int) $this->post('id_eleve', '0');
         $retour = "/paiements/guichet?eleve=$idEleve&frais=$idFrais";
 
+        $taux = TauxChange::actuel();
+        $devise = $this->post('devise', DEVISE);
+        if (!in_array($devise, Monnaie::devisesAcceptees($taux), true)) {
+            $devise = DEVISE;
+        }
         $saisie = str_replace([' ', "\u{00A0}", ','], ['', '', '.'], $this->post('montant'));
-        $erreurs = $this->valider(['montant' => $saisie], ['montant' => 'requis|montant']);
+        $erreurs = $this->valider(['montant' => $saisie], ['montant' => 'requis|montant:' . $devise]);
         if ($idFrais <= 0) {
             $erreurs['id_frais'] = 'Choisissez le frais à régler.';
         }
         if ($erreurs) {
             $this->retourAvecErreurs($retour, $erreurs);
         }
-        $montant = round((float) $saisie, 2);
 
         $db = Database::get();
         $db->beginTransaction();
@@ -74,6 +80,9 @@ final class PaiementController extends Controller
             if ($frais['statut'] === 'paye') {
                 throw new DomainException('Ce frais est déjà entièrement payé.');
             }
+            // Conversion dans la devise de base (francs) au taux du jour si versement en dollars.
+            $versement = Monnaie::convertir((float) $saisie, $devise, $taux ? (float) $taux['taux'] : null, (float) $frais['reste']);
+            $montant = $versement['montant_base'];
             $minimum = Frais::versementMinimal((float) $frais['reste']);
             if ($montant < $minimum) {
                 throw new DomainException('Le montant minimal d\'un versement est de ' . formaterMontant($minimum) . '.');
@@ -82,9 +91,12 @@ final class PaiementController extends Controller
             $nouveauStatut = Frais::statutApres((float) $frais['montant'], (float) $frais['montant_paye'], $montant);
 
             $idPaiement = Paiement::creer([
-                'reference'    => Paiement::genererReference(),
-                'montant'      => $montant,
-                'mode'         => 'especes',
+                'reference'     => Paiement::genererReference(),
+                'montant'       => $montant,
+                'devise_versee' => $versement['devise'],
+                'montant_verse' => $versement['montant_verse'],
+                'taux_applique' => $versement['taux'],
+                'mode'          => 'especes',
                 'statut'       => 'reussi',
                 'id_frais'     => $idFrais,
                 'id_comptable' => (int) $comptable['id_utilisateur'],
@@ -103,7 +115,7 @@ final class PaiementController extends Controller
 
         Session::message('succes', sprintf(
             'Paiement de %s enregistré pour %s %s. %s',
-            formaterMontant($montant),
+            Monnaie::libelleVersement(['montant' => $montant, 'devise_versee' => $devise, 'montant_verse' => $versement['montant_verse']]),
             $frais['eleve_prenom'],
             $frais['eleve_nom'],
             $nouveauStatut === 'paye' ? 'Le frais est soldé.' : 'Le frais reste partiellement payé.'

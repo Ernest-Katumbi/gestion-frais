@@ -3,7 +3,8 @@
  * Installation de la base et données de démonstration.
  *
  *   php database/seed.php              réinstallation complète (efface toutes les données !)
- *   php database/seed.php --si-vide    n'installe que si la base est vide (démarrage en ligne)
+ *   php database/seed.php --si-vide    n'installe que si la base est vide
+ *   php database/seed.php --si-necessaire  idem, ou si la base date d'avant la gestion des devises
  *   php database/seed.php --sans-pdf   reçus PDF générés plus tard, à leur première ouverture
  *
  * Crée la base si nécessaire, (ré)importe le schéma gestion_frais.sql puis insère
@@ -25,10 +26,15 @@ $serveur->exec('CREATE DATABASE IF NOT EXISTS `' . str_replace('`', '', DB_NAME)
 echo "Base « " . DB_NAME . " » prête.\n";
 
 $db = Database::get();
-if (in_array('--si-vide', $options, true)) {
-    $requete = $db->prepare("SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = DATABASE() AND table_name = 'utilisateur'");
-    $requete->execute();
-    if ((int) $requete->fetchColumn() > 0) {
+if (in_array('--si-vide', $options, true) || in_array('--si-necessaire', $options, true)) {
+    $table = static function (string $nom) use ($db): bool {
+        $requete = $db->prepare('SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = DATABASE() AND table_name = ?');
+        $requete->execute([$nom]);
+        return (int) $requete->fetchColumn() > 0;
+    };
+    // --si-necessaire réinstalle aussi une base de démonstration antérieure à la gestion des devises.
+    $aJour = $table('utilisateur') && (!in_array('--si-necessaire', $options, true) || $table('taux_change'));
+    if ($aJour) {
         echo "La base contient déjà l'application : aucune modification.\n";
         exit(0);
     }
@@ -156,10 +162,10 @@ echo count($eleves) . " élèves inscrits.\n";
 
 $categories = [
     // clé => [code, libellé, montant, périodicité, échéance]
-    'inscr' => ['INSCR',  'Frais d\'inscription',    50.00,  'unique',        $jour(-20)],
-    'mint1' => ['MIN-T1', 'Minerval 1er trimestre',  150.00, 'trimestrielle', $jour(3)],
-    'exam'  => ['EXAM',   'Frais d\'examen',         40.00,  'annuelle',      $jour(45)],
-    'mint2' => ['MIN-T2', 'Minerval 2e trimestre',   150.00, 'trimestrielle', $jour(100)],
+    'inscr' => ['INSCR',  'Frais d\'inscription',    150000, 'unique',        $jour(-20)],
+    'mint1' => ['MIN-T1', 'Minerval 1er trimestre',  450000, 'trimestrielle', $jour(3)],
+    'exam'  => ['EXAM',   'Frais d\'examen',         120000, 'annuelle',      $jour(45)],
+    'mint2' => ['MIN-T2', 'Minerval 2e trimestre',   450000, 'trimestrielle', $jour(100)],
 ];
 $insertion = $db->prepare('INSERT INTO categorie_frais (code, libelle, montant_defaut, periodicite) VALUES (?, ?, ?, ?)');
 $idsCategories = [];
@@ -178,16 +184,30 @@ foreach ($categories as $cle => $categorie) {
 }
 echo count($categories) . " catégories, $nbFrais frais affectés.\n";
 
+// Taux de change (FC pour 1 USD) saisis par le comptable au fil du mois : historique conservé.
+foreach ([[-40, 2820], [-20, 2835], [-7, 2850]] as [$decalage, $taux]) {
+    TauxChange::enregistrer($taux, $ids['comptable'], DEVISE_ETRANGERE, $heure($decalage, 7, 30));
+}
+echo "3 taux de change enregistrés (" . formaterTaux(2850) . " en vigueur).\n";
+
 /**
  * Encaissement au guichet, en suivant le même chemin que l'application :
  * paiement réussi, versement atomique, reçu PDF et notification du parent.
  * L'horloge de la session MariaDB est placée à la date historique (SET timestamp) :
  * CURRENT_TIMESTAMP donne alors la bonne date d'émission du reçu et d'envoi de la notification.
  */
-$encaisser = static function (int $idEleve, int $idCategorie, float $montant, string $date, string $mode = 'especes', bool $succes = true, string $raison = '') use ($db, $ids): void {
-    $requete = $db->prepare('SELECT id_frais FROM frais WHERE id_eleve = ? AND id_categorie = ?');
+$encaisser = static function (int $idEleve, int $idCategorie, ?float $montant, string $date, string $mode = 'especes', bool $succes = true, string $raison = '', string $devise = DEVISE) use ($db, $ids): void {
+    $requete = $db->prepare('SELECT id_frais, montant - montant_paye AS reste FROM frais WHERE id_eleve = ? AND id_categorie = ?');
     $requete->execute([$idEleve, $idCategorie]);
-    $idFrais = (int) $requete->fetchColumn();
+    $frais = $requete->fetch();
+    $idFrais = (int) $frais['id_frais'];
+
+    // Versement en dollars : taux en vigueur à la date du paiement ; montant null = solder le reste.
+    $taux = $devise === DEVISE ? null : (float) TauxChange::enVigueur($date)['taux'];
+    if ($montant === null) {
+        $montant = Monnaie::versDevise((float) $frais['reste'], $taux);
+    }
+    $versement = Monnaie::convertir($montant, $devise, $taux, (float) $frais['reste']);
 
     $horloge = $db->prepare('SET timestamp = ?');
     $horloge->bindValue(1, strtotime($date), PDO::PARAM_INT);
@@ -195,7 +215,10 @@ $encaisser = static function (int $idEleve, int $idCategorie, float $montant, st
     $db->beginTransaction();
     $idPaiement = Paiement::creer([
         'reference'     => Paiement::genererReference(new DateTimeImmutable($date)),
-        'montant'       => $montant,
+        'montant'       => $versement['montant_base'],
+        'devise_versee' => $versement['devise'],
+        'montant_verse' => $versement['montant_verse'],
+        'taux_applique' => $versement['taux'],
         'mode'          => $mode,
         'statut'        => $succes ? 'reussi' : 'echoue',
         'date_paiement' => $date,
@@ -203,7 +226,7 @@ $encaisser = static function (int $idEleve, int $idCategorie, float $montant, st
         'id_comptable'  => $mode === 'especes' ? $ids['comptable'] : null, // en ligne : pas de comptable
     ]);
     if ($succes) {
-        Frais::enregistrerVersement($idFrais, $montant);
+        Frais::enregistrerVersement($idFrais, $versement['montant_base']);
         GenerateurRecu::generer($idPaiement);
         Notificateur::paiementConfirme($idPaiement);
     } else {
@@ -221,56 +244,64 @@ $requete = $db->prepare('SELECT id_eleve FROM eleve ORDER BY id_eleve');
 $requete->execute();
 $idsEleves = $requete->fetchAll(PDO::FETCH_COLUMN);
 
-// Opérations [élève, catégorie, montant, date], exécutées ensuite dans l'ordre chronologique
-// pour que les numéros de reçus se suivent dans le temps.
+// Opérations [élève, catégorie, montant, date, mode, réussi, motif, devise], exécutées ensuite
+// dans l'ordre chronologique pour que les numéros de reçus se suivent dans le temps.
+// Montants en francs ; en dollars, null signifie « solder le reste au taux du jour ».
+$fc = static fn(float $unites): float => $unites * 3000;
 $operations = [];
 foreach ($idsEleves as $i => $idEleve) {
     $idEleve = (int) $idEleve;
     // Frais d'inscription : payés le jour de l'inscription par 20 élèves,
     // 2 partiels le lendemain (élèves 21-22), 2 impayés et échus (élèves 23-24).
+    // Trois familles règlent l'inscription en dollars.
     if ($i < 20) {
-        $operations[] = [$idEleve, 'inscr', 50.00, $heure($datesInscription[$i], 8 + $i % 6, 10 + $i * 2)];
+        $operations[] = in_array($i, [4, 8, 12], true)
+            ? [$idEleve, 'inscr', null, $heure($datesInscription[$i], 8 + $i % 6, 10 + $i * 2), 'especes', true, '', DEVISE_ETRANGERE]
+            : [$idEleve, 'inscr', $fc(50), $heure($datesInscription[$i], 8 + $i % 6, 10 + $i * 2)];
     } elseif ($i < 22) {
-        $operations[] = [$idEleve, 'inscr', 25.00, $heure($datesInscription[$i] + 1, 10, 30 + $i)];
+        $operations[] = [$idEleve, 'inscr', $fc(25), $heure($datesInscription[$i] + 1, 10, 30 + $i)];
     }
     // Minerval T1 : 8 élèves soldés (dont un en deux fois), 6 en partiel, les autres impayés.
-    if (in_array($i, [2, 4, 6, 8, 10, 12, 14], true)) {
-        $operations[] = [$idEleve, 'mint1', 150.00, $heure(-12 + $i % 7, 9 + $i % 5, 5 + $i)];
+    if ($i === 10) {
+        $operations[] = [$idEleve, 'mint1', null, $heure(-12 + $i % 7, 9 + $i % 5, 5 + $i), 'especes', true, '', DEVISE_ETRANGERE];
+    } elseif (in_array($i, [2, 4, 6, 8, 12, 14], true)) {
+        $operations[] = [$idEleve, 'mint1', $fc(150), $heure(-12 + $i % 7, 9 + $i % 5, 5 + $i)];
     } elseif ($i === 16) {
-        $operations[] = [$idEleve, 'mint1', 80.00, $heure(-15, 9, 40)];
-        $operations[] = [$idEleve, 'mint1', 70.00, $heure(-4, 14, 20)];
+        $operations[] = [$idEleve, 'mint1', $fc(80), $heure(-15, 9, 40)];
+        $operations[] = [$idEleve, 'mint1', $fc(70), $heure(-4, 14, 20)];
     } elseif (in_array($i, [0, 3, 5, 9, 17, 19], true)) {
-        $montant = [0 => 100.00, 3 => 75.00, 5 => 50.00, 9 => 120.00, 17 => 60.00, 19 => 90.00][$i];
-        $operations[] = [$idEleve, 'mint1', $montant, $heure(-8 + $i % 6, 11, 15 + $i)];
+        $montant = [0 => 100, 3 => 75, 5 => 50, 9 => 120, 17 => 60, 19 => 90][$i];
+        $operations[] = [$idEleve, 'mint1', $fc($montant), $heure(-8 + $i % 6, 11, 15 + $i)];
     }
 }
-// Paiements en ligne récents : [indice de l'élève, catégorie, montant, jour, heure, mode, réussi, motif d'échec].
+// Paiements en ligne récents : [indice de l'élève, catégorie, montant, devise, jour, heure, mode, réussi, motif d'échec].
+// Les paiements par carte sont faits en dollars.
 $enLigne = [
-    [7,  'mint1', 150.00, -9, '19:42', 'mobile_money', true,  ''],
-    [11, 'mint1', 100.00, -7, '20:15', 'mobile_money', true,  ''],
-    [13, 'mint1', 150.00, -6, '21:03', 'carte',        true,  ''],
-    [3,  'mint1',  75.00, -5, '12:30', 'mobile_money', true,  ''],
-    [18, 'mint1',  50.00, -4, '18:05', 'mobile_money', false, 'Solde insuffisant'],
-    [18, 'mint1',  50.00, -4, '18:22', 'mobile_money', true,  ''],
-    [20, 'inscr',  25.00, -3, '07:48', 'carte',        true,  ''],
-    [15, 'mint1', 150.00, -2, '22:10', 'carte',        false, 'Carte refusée par la banque émettrice'],
-    [9,  'mint1',  30.00, -2, '13:17', 'mobile_money', true,  ''],
-    [6,  'exam',   40.00, -1, '08:55', 'mobile_money', true,  ''],
-    [12, 'exam',   40.00, -1, '10:40', 'carte',        true,  ''],
-    [15, 'mint1', 150.00, -1, '07:12', 'mobile_money', true,  ''],
+    [7,  'mint1', $fc(150), DEVISE,           -9, '19:42', 'mobile_money', true,  ''],
+    [11, 'mint1', $fc(100), DEVISE,           -7, '20:15', 'mobile_money', true,  ''],
+    [13, 'mint1', 150.00,   DEVISE_ETRANGERE, -6, '21:03', 'carte',        true,  ''],
+    [3,  'mint1', $fc(75),  DEVISE,           -5, '12:30', 'mobile_money', true,  ''],
+    [18, 'mint1', $fc(50),  DEVISE,           -4, '18:05', 'mobile_money', false, 'Solde insuffisant'],
+    [18, 'mint1', $fc(50),  DEVISE,           -4, '18:22', 'mobile_money', true,  ''],
+    [20, 'inscr', null,     DEVISE_ETRANGERE, -3, '07:48', 'carte',        true,  ''],
+    [15, 'mint1', 150.00,   DEVISE_ETRANGERE, -2, '22:10', 'carte',        false, 'Carte refusée par la banque émettrice'],
+    [9,  'mint1', $fc(30),  DEVISE,           -2, '13:17', 'mobile_money', true,  ''],
+    [6,  'exam',  $fc(40),  DEVISE,           -1, '08:55', 'mobile_money', true,  ''],
+    [12, 'exam',  40.00,    DEVISE_ETRANGERE, -1, '10:40', 'carte',        true,  ''],
+    [15, 'mint1', $fc(150), DEVISE,           -1, '07:12', 'mobile_money', true,  ''],
 ];
-foreach ($enLigne as [$i, $categorie, $montant, $decalage, $h, $mode, $succes, $raison]) {
-    $operations[] = [(int) $idsEleves[$i], $categorie, $montant, $jour($decalage) . " $h:00", $mode, $succes, $raison];
+foreach ($enLigne as [$i, $categorie, $montant, $devise, $decalage, $h, $mode, $succes, $raison]) {
+    $operations[] = [(int) $idsEleves[$i], $categorie, $montant, $jour($decalage) . " $h:00", $mode, $succes, $raison, $devise];
 }
 
 usort($operations, static fn(array $a, array $b): int => strcmp($a[3], $b[3]));
 foreach ($operations as $operation) {
     [$idEleve, $categorie, $montant, $date] = $operation;
-    $encaisser($idEleve, $idsCategories[$categorie], $montant, $date, $operation[4] ?? 'especes', $operation[5] ?? true, $operation[6] ?? '');
+    $encaisser($idEleve, $idsCategories[$categorie], $montant, $date, $operation[4] ?? 'especes', $operation[5] ?? true, $operation[6] ?? '', $operation[7] ?? DEVISE);
 }
 printf("%d paiements enregistrés (%d au guichet, %d en ligne dont %d échoués), avec reçus PDF et notifications.\n",
     count($operations), count($operations) - count($enLigne), count($enLigne),
-    count(array_filter($enLigne, static fn(array $o): bool => !$o[6])));
+    count(array_filter($enLigne, static fn(array $o): bool => !$o[7])));
 
 // Le journal des e-mails repart à vide après l'installation.
 file_put_contents(LOGS_DIR . '/mail.log', '');

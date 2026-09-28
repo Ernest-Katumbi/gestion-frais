@@ -13,6 +13,7 @@ $menus = [
             ['/utilisateurs', 'Utilisateurs', 'users'],
             ['/classes', 'Classes', 'school'],
             ['/eleves', 'Élèves', 'graduation-cap'],
+            ['/taux-change', 'Taux de change', 'refresh'],
         ],
     ],
     'comptable' => [
@@ -28,6 +29,7 @@ $menus = [
         'Paramétrage' => [
             ['/categories', 'Catégories de frais', 'tag'],
             ['/frais', 'Affectation des frais', 'file-text'],
+            ['/taux-change', 'Taux de change', 'refresh'],
         ],
     ],
     'parent' => [

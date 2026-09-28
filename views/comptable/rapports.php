@@ -7,6 +7,7 @@
  * @var array $parCategorie  ventilations : libelle, nb, somme
  * @var array $parClasse
  * @var array $parMode
+ * @var array $parDevise     encaissements par devise de versement
  * @var array $impayesClasse libelle, nb, reste, eleves
  */
 $parametres = array_filter([
@@ -21,6 +22,7 @@ $ventilations = [
     ['Par catégorie de frais', 'tag', $parCategorie],
     ['Par classe', 'school', $parClasse],
     ['Par mode de paiement', 'wallet', $parMode],
+    ['Par devise de versement', 'banknote', $parDevise],
 ];
 ?>
 <div class="page-header">
@@ -97,7 +99,7 @@ $ventilations = [
 </section>
 
 <?php if ($somme > 0): ?>
-    <div class="grid grid-3 mb-3">
+    <div class="grid grid-2 mb-3">
         <?php foreach ($ventilations as [$titre, $icone, $lignes]): ?>
             <section class="card">
                 <div class="card__header"><h3><?= e($titre) ?></h3></div>

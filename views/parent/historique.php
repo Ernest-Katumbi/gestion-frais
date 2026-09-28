@@ -46,6 +46,7 @@ $iconesMode = ['especes' => 'banknote', 'mobile_money' => 'smartphone', 'carte' 
                     </div>
                     <div class="historique__droite">
                         <strong class="num d-block"><?= e(formaterMontant($p['montant'])) ?></strong>
+                        <?php if (($p['devise_versee'] ?? DEVISE) !== DEVISE): ?><span class="d-block text-small text-muted num">versé <?= e(formaterMontant($p['montant_verse'], $p['devise_versee'])) ?></span><?php endif; ?>
                         <?= badgeStatut($p['statut']) ?>
                         <?php if ($p['id_recu']): ?>
                             <a href="<?= url('/recus/' . (int) $p['id_recu'], ['telecharger' => 1]) ?>" class="btn btn-soft btn-sm" aria-label="Télécharger le reçu <?= e($p['recu_numero']) ?>"><?= icone('download') ?> Reçu</a>

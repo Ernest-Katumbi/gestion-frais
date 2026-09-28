@@ -347,66 +347,119 @@
     if (champ.value.trim() !== '') verifier();
   });
 
-  // --- Montants : formatage identique au serveur (1 250,00 USD) ---------------
+  // --- Montants : formatage identique au serveur (450 000 FC, 150,00 USD) -------
   function formaterMontant(valeur, devise) {
-    return valeur.toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
-      .replace(/ /g, ' ') + ' ' + devise;
+    return valeur.toLocaleString('fr-FR', { minimumFractionDigits: devise.dec, maximumFractionDigits: devise.dec })
+      .replace(/[ \s]/g, ' ') + ' ' + devise.symbole;
   }
-  function enCentimes(texte) {
+  function lireNombre(texte) {
     var n = parseFloat(String(texte).replace(/\s/g, '').replace(',', '.'));
-    return isNaN(n) ? NaN : Math.round(n * 100);
+    return isNaN(n) ? NaN : n;
+  }
+  function arrondir(valeur, dec) {
+    var f = Math.pow(10, dec);
+    return Math.round(valeur * f) / f;
   }
 
   // --- Guichet et paiement en ligne : montant proposé = reste à payer ---------
-  // Le montant ne peut pas dépasser le reste ; un aperçu indique le solde après versement.
+  // Le versement peut être fait dans la devise de base (FC) ou dans la devise étrangère
+  // (USD) convertie au taux du jour. Le montant converti ne peut pas dépasser le reste ;
+  // un aperçu indique la conversion et le solde après versement.
   document.querySelectorAll('[data-guichet]').forEach(function (form) {
-    var devise = form.dataset.devise || '';
+    var base = { code: form.dataset.base, symbole: form.dataset.baseSymbole, dec: parseInt(form.dataset.baseDecimales || '2', 10) };
+    var etr = form.dataset.etr
+      ? { code: form.dataset.etr, symbole: form.dataset.etrSymbole, dec: parseInt(form.dataset.etrDecimales || '2', 10) }
+      : null;
+    var taux = parseFloat(form.dataset.taux || '0');
     var champ = form.querySelector('input[name="montant"]');
     var apercu = form.querySelector('[data-apercu]');
     var aide = form.querySelector('[data-montant-aide]');
+    var suffixe = form.querySelector('[data-suffixe-devise]');
 
     // Guichet : frais choisi parmi plusieurs ; paiement en ligne : frais unique.
     function choisi() {
       return form.querySelector('input[name="id_frais"]:checked') || form.querySelector('[data-frais-unique]');
     }
+    function devise() {
+      var r = form.querySelector('input[name="devise"]:checked');
+      return etr && r && r.value === etr.code ? etr : base;
+    }
+    // Montant en devise étrangère couvrant un montant en FC (centime supérieur).
+    function versEtrangere(montantBase) {
+      var f = Math.pow(10, etr.dec);
+      return Math.ceil(arrondir(montantBase / taux * f, 6)) / f;
+    }
+    // Conversion vers la devise de base, avec la même tolérance d'arrondi que le serveur.
+    function versBase(verse, reste) {
+      if (devise() === base) return { valeur: arrondir(verse, base.dec), arrondi: false };
+      var b = arrondir(verse * taux, base.dec);
+      if (b > reste && b - reste <= taux * Math.pow(10, -etr.dec) + 1e-9) return { valeur: reste, arrondi: true };
+      return { valeur: b, arrondi: false };
+    }
 
     function mettreAJourApercu() {
       var radio = choisi();
       if (!radio || !apercu) return;
-      var reste = enCentimes(radio.dataset.reste);
-      var verse = enCentimes(champ.value);
+      var d = devise();
+      var reste = lireNombre(radio.dataset.reste);
+      var minimum = lireNombre(radio.dataset.minimum);
+      var verse = lireNombre(champ.value);
       champ.setCustomValidity('');
-      if (!isNaN(verse) && verse > reste) {
-        champ.setCustomValidity('Le montant dépasse le reste à payer (' + formaterMontant(reste / 100, devise) + ').');
-      } else if (!isNaN(verse) && verse < enCentimes(radio.dataset.minimum)) {
-        champ.setCustomValidity('Le montant minimal est de ' + formaterMontant(enCentimes(radio.dataset.minimum) / 100, devise) + '.');
-      }
-      if (isNaN(verse) || verse <= 0 || verse > reste) {
+      if (isNaN(verse) || verse <= 0) {
         apercu.hidden = true;
         return;
       }
-      var apres = reste - verse;
+      var conv = versBase(verse, reste);
+      if (conv.valeur > reste) {
+        champ.setCustomValidity('Le montant dépasse le reste à payer (' + formaterMontant(reste, base) +
+          (d === base ? '' : ', soit ' + formaterMontant(versEtrangere(reste), d)) + ').');
+      } else if (conv.valeur < minimum) {
+        champ.setCustomValidity('Le montant minimal est de ' + formaterMontant(minimum, base) + '.');
+      }
+      if (conv.valeur > reste) {
+        apercu.hidden = true;
+        return;
+      }
+      var apres = arrondir(reste - conv.valeur, base.dec);
+      var texte = d === base ? '' : formaterMontant(verse, d) + ' × ' + taux.toLocaleString('fr-FR') + ' = ' +
+        formaterMontant(conv.valeur, base) + (conv.arrondi ? ' (arrondi au reste)' : '') + '. ';
       apercu.hidden = false;
       apercu.className = 'apercu ' + (apres === 0 ? 'is-solde' : 'is-partiel');
-      apercu.textContent = apres === 0
+      apercu.textContent = texte + (apres === 0
         ? 'Après ce versement, le frais sera entièrement payé.'
-        : 'Après ce versement, il restera ' + formaterMontant(apres / 100, devise) + ' à payer (paiement partiel).';
+        : 'Après ce versement, il restera ' + formaterMontant(apres, base) + ' à payer (paiement partiel).');
     }
 
-    function appliquerFrais(radio, conserverSaisie) {
+    // Montant proposé = reste, exprimé dans la devise choisie.
+    function proposer(radio) {
+      var reste = lireNombre(radio.dataset.reste);
+      return devise() === base ? reste.toFixed(base.dec) : versEtrangere(reste).toFixed(etr.dec);
+    }
+
+    function appliquer(conserverSaisie) {
+      var radio = choisi();
       if (!radio) return;
-      champ.max = radio.dataset.reste;
-      champ.min = radio.dataset.minimum;
-      if (!conserverSaisie || champ.value === '') champ.value = radio.dataset.reste;
-      if (aide) aide.textContent = 'Reste à payer : ' + formaterMontant(enCentimes(radio.dataset.reste) / 100, devise) + '. Un versement partiel est accepté.';
+      var d = devise();
+      var reste = lireNombre(radio.dataset.reste);
+      champ.step = d.dec > 0 ? String(Math.pow(10, -d.dec)) : '1';
+      champ.max = proposer(radio);
+      if (suffixe) suffixe.textContent = d.symbole;
+      if (!conserverSaisie || champ.value === '') champ.value = proposer(radio);
+      if (aide) {
+        aide.textContent = 'Reste à payer : ' + formaterMontant(reste, base) +
+          (etr && taux ? ' (soit ' + formaterMontant(versEtrangere(reste), etr) + ')' : '') + '. Un versement partiel est accepté.';
+      }
       mettreAJourApercu();
     }
 
     form.querySelectorAll('input[name="id_frais"]').forEach(function (radio) {
-      radio.addEventListener('change', function () { appliquerFrais(radio, false); });
+      radio.addEventListener('change', function () { appliquer(false); });
+    });
+    form.querySelectorAll('input[name="devise"]').forEach(function (radio) {
+      radio.addEventListener('change', function () { appliquer(false); });
     });
     champ.addEventListener('input', mettreAJourApercu);
-    appliquerFrais(choisi(), true);
+    appliquer(true);
   });
 
   // --- Paiement en ligne : champs propres au moyen de paiement choisi -----------

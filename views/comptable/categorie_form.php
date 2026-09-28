@@ -40,9 +40,9 @@ $action = $edition ? url('/categories/' . (int) $categorie['id_categorie']) : ur
                 'options' => ['' => 'Choisir…'] + CategorieFrais::PERIODICITES,
             ]) ?>
             <?= View::partiel('champ', [
-                'nom' => 'montant_defaut', 'libelle' => 'Montant par défaut (' . DEVISE . ')', 'type' => 'number', 'requis' => true,
+                'nom' => 'montant_defaut', 'libelle' => 'Montant par défaut (' . symboleDevise() . ')', 'type' => 'number', 'requis' => true,
                 'valeur' => $categorie['montant_defaut'] ?? '', 'classe' => 'span-2',
-                'attributs' => 'min="0.01" step="0.01" max="99999999.99" inputmode="decimal" placeholder="0,00" class="input-montant"',
+                'attributs' => 'min="1" step="' . (decimalesDevise() > 0 ? '0.01' : '1') . '" max="99999999" inputmode="decimal" placeholder="0" class="input-montant"',
             ]) ?>
         </div>
         <div class="form-actions">

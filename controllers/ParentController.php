@@ -101,6 +101,7 @@ final class ParentController extends Controller
             'f'          => $frais,
             'parent'     => $parent,
             'operateurs' => self::OPERATEURS,
+            'taux'       => TauxChange::actuel(),
         ]);
     }
 
@@ -124,23 +125,31 @@ final class ParentController extends Controller
             $this->rediriger('/parent/paiements/' . (int) $enCours['id_paiement']);
         }
 
+        $taux = TauxChange::actuel();
+        $devise = $this->post('devise', DEVISE);
+        if (!in_array($devise, Monnaie::devisesAcceptees($taux), true)) {
+            $devise = DEVISE;
+        }
         $donnees = [
             'montant'   => str_replace([' ', "\u{00A0}", ','], ['', '', '.'], $this->post('montant')),
             'mode'      => $this->post('mode'),
             'operateur' => $this->post('operateur'),
             'telephone' => $this->post('telephone'),
         ];
-        $regles = ['montant' => 'requis|montant', 'mode' => 'requis|dans:mobile_money,carte'];
+        $regles = ['montant' => 'requis|montant:' . $devise, 'mode' => 'requis|dans:mobile_money,carte'];
         if ($donnees['mode'] === 'mobile_money') {
             $regles += ['operateur' => 'requis|dans:' . implode(',', array_keys(self::OPERATEURS)), 'telephone' => 'requis|telephone'];
         }
         $erreurs = $this->valider($donnees, $regles);
 
-        $montant = round((float) $donnees['montant'], 2);
+        $versement = null;
         if (!isset($erreurs['montant'])) {
-            // Montant proposé = reste à payer ; paiement partiel possible (au moins 1,00) mais jamais au-delà.
+            // Montant proposé = reste à payer ; paiement partiel possible mais jamais au-delà.
+            // Un versement en dollars est converti en francs au taux du jour, figé à l'initiation.
             $minimum = Frais::versementMinimal((float) $frais['reste']);
             try {
+                $versement = Monnaie::convertir((float) $donnees['montant'], $devise, $taux ? (float) $taux['taux'] : null, (float) $frais['reste']);
+                $montant = $versement['montant_base'];
                 if ($montant < $minimum) {
                     throw new DomainException('Le montant minimal est de ' . formaterMontant($minimum) . '.');
                 }
@@ -155,15 +164,20 @@ final class ParentController extends Controller
 
         $reference = Paiement::genererReference();
         $idPaiement = Paiement::creer([
-            'reference' => $reference,
-            'montant'   => $montant,
-            'mode'      => $donnees['mode'],
-            'statut'    => 'en_attente',
-            'id_frais'  => $id,
+            'reference'     => $reference,
+            'montant'       => $montant,
+            'devise_versee' => $versement['devise'],
+            'montant_verse' => $versement['montant_verse'],
+            'taux_applique' => $versement['taux'],
+            'mode'          => $donnees['mode'],
+            'statut'        => 'en_attente',
+            'id_frais'      => $id,
         ]);
 
         try {
-            $transaction = passerelle()->initierTransaction($montant, $donnees['mode'], $reference, [
+            // La passerelle débite le montant dans la devise choisie par le parent.
+            $transaction = passerelle()->initierTransaction($versement['montant_verse'], $donnees['mode'], $reference, [
+                'devise'     => $versement['devise'],
                 'nom'        => $parent['nom'],
                 'email'      => $parent['email'],
                 'telephone'  => $donnees['mode'] === 'mobile_money' ? $donnees['telephone'] : (string) $parent['telephone'],

@@ -34,6 +34,7 @@ l'exécution (capture d'écran conseillée pour le mémoire).
 | CT05 | Élève dont le parent n'a pas de compte | Admin | Compte parent créé, mot de passe provisoire | ☐ Conforme ☐ Non conforme |
 | CT06 | Affectation d'une catégorie à une classe | Comptable | Un frais « impayé » par élève, sans doublon | ☐ Conforme ☐ Non conforme |
 | CT07 | Paiement partiel au guichet | Comptable | Statut « partiel », reçu PDF, notification | ☐ Conforme ☐ Non conforme |
+| CT07 bis | Paiement en dollars au taux du jour | Comptable | Conversion en FC, taux conservé sur le reçu | ☐ Conforme ☐ Non conforme |
 | CT08 | Versement supérieur au reste | Comptable | Refus, frais inchangé | ☐ Conforme ☐ Non conforme |
 | CT09 | Mobile Money confirmé | Parent | Paiement réussi, reçu, mise à jour en direct | ☐ Conforme ☐ Non conforme |
 | CT10 | Solde insuffisant | Parent | Paiement échoué, motif affiché, frais inchangé | ☐ Conforme ☐ Non conforme |
@@ -107,11 +108,11 @@ l'exécution (capture d'écran conseillée pour le mémoire).
 - **Objectif** : `FraisController::assigner()` crée un frais par élève, sans doublon.
 - **Étapes** :
   1. En comptable, **Catégories de frais → Nouvelle catégorie** : libellé `Frais de bulletin`,
-     code `BULL`, périodicité Annuelle, montant `12,50`.
+     code `BULL`, périodicité Annuelle, montant `35000` (FC).
   2. **Affectation des frais** : catégorie « Frais de bulletin », une échéance, cocher
      `3e Scientifique`, **Affecter les frais**, confirmer.
   3. Refaire exactement la même affectation.
-- **Résultat attendu** : « 4 frais créés de 12,50 USD chacun » ; la ligne apparaît dans
+- **Résultat attendu** : « 4 frais créés de 35 000 FC chacun » ; la ligne apparaît dans
   « Affectations en cours » (recouvrement 0 %) ; la 2ᵉ fois : « Ces frais étaient déjà affectés…
   aucun doublon n'a été créé ». La catégorie ne peut plus être supprimée (elle est utilisée).
 
@@ -119,27 +120,40 @@ l'exécution (capture d'écran conseillée pour le mémoire).
 
 - **Objectif** : encaissement en espèces avec reçu.
 - **Étapes** : en comptable, **Encaisser au guichet** ; rechercher `Glody` ; choisir « Minerval
-  1er trimestre » (reste 150,00 USD) ; saisir `60` (l'aperçu indique « il restera 90,00 USD ») ;
+  1er trimestre » (reste 450 000 FC) ; devise **Franc congolais**, saisir `180000` (l'aperçu indique
+  « il restera 270 000 FC ») ;
   **Enregistrer le paiement** et confirmer.
-- **Résultat attendu** : page du paiement « Paiement réussi 60,00 USD », statut du frais
-  **Partiel** (60 / 150), reçu `REC-2026-…` téléchargeable (PDF A5 avec QR code, « Encaissé par
-  Patrick Ilunga », reste 90,00 USD). Côté parent : notification sous la cloche et reçu dans
+- **Résultat attendu** : page du paiement « Paiement réussi 180 000 FC », statut du frais
+  **Partiel** (180 000 / 450 000), reçu `REC-2026-…` téléchargeable (PDF A5 avec QR code, « Encaissé par
+  Patrick Ilunga », reste 270 000 FC). Côté parent : notification sous la cloche et reçu dans
   **Historique des paiements** ; e-mail dans `mail.log`.
+
+## CT07 bis — Paiement en dollars au taux du jour
+
+- **Objectif** : un versement en USD est converti en FC au taux en vigueur.
+- **Étapes** :
+  1. En comptable, **Taux de change** : saisir `2860` → « Nouveau taux en vigueur : 1 USD = 2 860 FC » ;
+     l'ancien taux reste dans l'historique. (Une variation de plus de 20 % demande une confirmation.)
+  2. **Encaisser au guichet**, Glody, « Frais d'examen » (reste 120 000 FC), devise **Dollar américain**.
+- **Résultat attendu** : montant proposé 41,96 USD ; aperçu « 41,96 USD × 2 860 = 120 000 FC (arrondi au
+  reste) » ; après validation, frais **Payé**, paiement enregistré « 41,96 USD (120 000 FC) » avec le taux
+  appliqué, visible sur le reçu (« Versé 41,96 USD · Taux 1 USD = 2 860 FC ») et dans le rapport
+  (ventilation « Par devise de versement »).
 
 ## CT08 — Versement supérieur au reste
 
 - **Objectif** : on ne peut jamais payer plus que le reste.
-- **Étapes** : sur le même frais (reste 90,00), saisir `90.01` et valider.
+- **Étapes** : sur le même frais (reste 270 000 FC), saisir `270001` et valider.
 - **Résultat attendu** : le navigateur signale « Le montant dépasse le reste à payer » ; si le
-  contrôle du navigateur est contourné, le serveur refuse : « Le montant versé (90,01 USD) dépasse
-  le reste à payer (90,00 USD). » Le frais et la liste des paiements sont inchangés.
+  contrôle du navigateur est contourné, le serveur refuse : « Le montant versé (270 001 FC) dépasse
+  le reste à payer (270 000 FC). » Le frais et la liste des paiements sont inchangés.
 
 ## CT09 — Mobile Money confirmé
 
 - **Objectif** : paiement en ligne via la passerelle (simulateur).
 - **Étapes** :
-  1. En `parent@oliviers.cd`, carte « Minerval 1er trimestre » de Merveille (reste 50,00) →
-     **Payer** ; montant proposé 50,00 ; Mobile Money, M-Pesa, numéro prérempli → **Payer maintenant**.
+  1. En `parent@oliviers.cd`, carte « Minerval 1er trimestre » de Merveille (reste 150 000 FC) →
+     **Payer** ; montant proposé 150 000 FC ; Mobile Money, M-Pesa, numéro prérempli → **Payer maintenant**.
   2. La page affiche « En attente de confirmation… » ; cliquer sur **Ouvrir mon téléphone
      (simulateur)**.
   3. Sur le téléphone simulé, saisir un code PIN à 4 chiffres, **Confirmer**.
@@ -224,6 +238,7 @@ les données de démonstration.
 |---|---|
 | `tests/FraisTest.php` | statuts impayé / partiel / payé, calcul en centimes, versement nul ou négatif refusé, dépassement du reste refusé, mise à jour atomique, affectation sans doublon |
 | `tests/PaiementTest.php` | format `PAY-AAAAMMJJ-XXXXXX`, date du paiement, unicité (1 000 références), référence en double refusée par la base |
+| `tests/MonnaieTest.php` | franc par défaut, formatage (450 000 FC, 150,00 USD), conversion au taux du jour, tolérance d'arrondi, refus sans taux ou devise inconnue, historique des taux |
 | `tests/PasserelleTest.php` | signature HMAC valide / invalide, `callback.php` exécuté réellement : signature falsifiée (401), notification reçue deux fois (traitée une fois), échec (frais inchangé), référence inconnue (404) |
 
-Résultat attendu : `OK (23 tests, 51 assertions)`.
+Résultat attendu : `OK (34 tests, 78 assertions)`.
